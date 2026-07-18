@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<title>Sornet Search</title>
+<meta name="description" content="Sornet — fast, clean, AI-powered search that stays right where you are.">
+
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sornet">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#ffffff;
+    --surface:#ffffff;
+    --surface-2:#f8f9fa;
+    --text:#202124;
+    --muted:#5f6368;
+    --border:#dfe1e5;
+    --border-soft:#ebebeb;
+    --link:#5b3df0;
+    --link-visited:#7c5cff;
+    --accent1:#6b4eff;
+    --accent2:#29b8d8;
+    --accent3:#ff5fa2;
+    --shadow:0 1px 6px rgba(32,33,36,0.18);
+    --shadow-lg:0 4px 22px rgba(32,33,36,0.16);
+    --radius:24px;
+  }
+  html[data-theme="dark"]{
+    --bg:#0b0b12;
+    --surface:#151521;
+    --surface-2:#1c1c2b;
+    --text:#e8e6f0;
+    --muted:#a09cc0;
+    --border:#2c2c40;
+    --border-soft:#232235;
+    --link:#9ea8ff;
+    --link-visited:#c9a8ff;
+    --shadow:0 1px 6px rgba(0,0,0,0.5);
+    --shadow-lg:0 8px 30px rgba(0,0,0,0.55);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ height:100%; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Roboto','Google Sans',Arial,sans-serif;
+    min-height:100dvh;
+    overflow-x:hidden;
+    transition:background .25s ease, color .25s ease;
+    position:relative;
+  }
+
+  /* ---------- Ambient background animation (subtle, stays out of the way) ---------- */
+  canvas#bg{
+    position:fixed; inset:0; width:100%; height:100%;
+    z-index:0; pointer-events:none; opacity:0.5;
+  }
+  .bg-glow{
+    position:fixed; top:-10%; left:50%; width:900px; height:900px;
+    transform:translateX(-50%);
+    background:conic-gradient(from 0deg, rgba(107,78,255,0.07), rgba(41,184,216,0.06), rgba(255,95,162,0.05), rgba(107,78,255,0.07));
+    filter:blur(100px);
+    border-radius:50%;
+    z-index:0; pointer-events:none;
+    animation:spin-slow 50s linear infinite;
+  }
+  @keyframes spin-slow{ to{ transform:translateX(-50%) rotate(360deg); } }
+
+  a{ color:var(--link); }
+
+  button{ font-family:inherit; }
+
+  /* ---------- Top bar (shared) ---------- */
+  .topbar{
+    position:relative; z-index:5;
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:14px;
+    padding:14px 18px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+  }
+  .icon-btn{
+    width:40px; height:40px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    color:var(--muted);
+    transition:background .15s ease;
+  }
+  .icon-btn:hover{ background:var(--surface-2); }
+  .icon-btn svg{ width:20px; height:20px; }
+
+  .signin-btn{
+    background:var(--accent1);
+    color:#fff;
+    border:none;
+    padding:9px 20px;
+    border-radius:20px;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:filter .15s ease;
+  }
+  .signin-btn:hover{ filter:brightness(1.08); }
+
+  .avatar{
+    width:34px; height:34px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+  }
+
+  /* ---------- Home view ---------- */
+  #homeView{
+    position:relative; z-index:2;
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center;
+    min-height:calc(100dvh - 68px);
+    padding:20px 20px 60px;
+  }
+  .logo-mark{
+    display:flex; align-items:center; gap:2px;
+    margin-bottom:26px;
+    user-select:none;
+  }
+  .logo-mark img{ width:44px; height:44px; border-radius:11px; }
+  .logo-text{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:52px;
+    letter-spacing:-1.5px;
+    background:linear-gradient(120deg,var(--accent1) 15%, var(--accent2) 55%, var(--accent3) 90%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  .search-shell{ width:min(560px,92vw); }
+  .search-pill{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+    padding:0 18px;
+    height:48px;
+    box-shadow:var(--shadow);
+    transition:box-shadow .18s ease, border-color .18s ease;
+  }
+  .search-pill:hover, .search-pill.focused{
+    box-shadow:var(--shadow-lg);
+    border-color:transparent;
+  }
+  .search-pill svg.search-icon{ color:var(--muted); flex-shrink:0; width:18px; height:18px; }
+  .search-pill input{
+    flex:1; border:none; outline:none; background:transparent;
+    color:var(--text); font-size:16px; height:100%;
+  }
+  .search-pill input::placeholder{ color:var(--muted); }
+  .mic-btn{ background:none; border:none; cursor:pointer; color:var(--accent1); display:flex; }
+
+  .home-actions{
+    display:flex; gap:12px; justify-content:center;
+    margin-top:26px; flex-wrap:wrap;
+  }
+  .action-btn{
+    background:var(--surface-2);
+    border:1px solid var(--surface-2);
+    color:var(--text);
+    font-size:14px;
+    padding:9px 18px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .action-btn:hover{ border-color:var(--border); background:var(--surface); }
+  .action-btn.ai{ color:var(--accent1); font-weight:500; }
+
+  .home-sub{
+    margin-top:34px; font-size:12.5px; color:var(--muted); text-align:center;
+  }
+
+  /* ---------- Results view ---------- */
+  #resultsView{
+    position:relative; z-index:2;
+    display:none;
+    min-height:100dvh;
+    flex-direction:column;
+  }
+  .results-topbar{
+    display:flex; align-items:center; gap:18px;
+    padding:12px 18px;
+    padding-top:calc(12px + env(safe-area-inset-top));
+    border-bottom:1px solid var(--border-soft);
+    background:var(--bg);
+    position:sticky; top:0; z-index:6;
+  }
+  .results-topbar .logo-mark{ margin:0; cursor:pointer; }
+  .results-topbar .logo-mark img{ width:32px; height:32px; border-radius:8px; }
+  .results-topbar .logo-text{ font-size:22px; }
+  .results-search{ flex:1; max-width:600px; }
+  .results-search .search-pill{ height:44px; box-shadow:none; border-color:var(--border); }
+  .results-search .search-pill:hover, .results-search .search-pill.focused{ box-shadow:var(--shadow); }
+  .results-top-right{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+
+  .results-body{
+    width:min(680px,94vw);
+    margin:0 auto;
+    padding:20px 6px 80px;
+  }
+
+  .status-line{ font-size:13px; color:var(--muted); margin-bottom:18px; }
+  .status-line b{ color:var(--text); }
+
+  .skeleton{ display:flex; flex-direction:column; gap:22px; }
+  .skel-line{ height:12px; border-radius:6px; background:var(--surface-2); position:relative; overflow:hidden; }
+  .skel-line::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation:shimmer 1.3s infinite;
+  }
+  html[data-theme="dark"] .skel-line::after{ background:linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); }
+  @keyframes shimmer{ from{ transform:translateX(-100%); } to{ transform:translateX(100%); } }
+
+  .ai-card{
+    background:var(--surface-2);
+    border:1px solid var(--border-soft);
+    border-radius:16px;
+    padding:20px 22px;
+    margin-bottom:26px;
+  }
+  .ai-card .ai-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11.5px; font-weight:700; letter-spacing:0.4px;
+    color:#fff;
+    background:linear-gradient(120deg,var(--accent1),var(--accent2));
+    padding:3px 10px; border-radius:20px;
+    margin-bottom:12px;
+    text-transform:uppercase;
+  }
+  .ai-card h2{ font-size:19px; margin-bottom:8px; font-family:'Space Grotesk',sans-serif; }
+  .ai-card p{ font-size:14.5px; line-height:1.65; color:var(--text); }
+  .ai-card .ai-source{ display:block; margin-top:12px; font-size:12.5px; color:var(--muted); }
+  .ai-card .ai-source a{ color:var(--link); text-decoration:none; }
+  .ai-card .ai-source a:hover{ text-decoration:underline; }
+
+  .result-item{ margin-bottom:26px; max-width:100%; }
+  .result-url{
+    display:flex; align-items:center; gap:8px;
+    font-size:12.5px; color:var(--muted); margin-bottom:3px;
+  }
+  .result-url .favicon{
+    width:16px; height:16px; border-radius:50%; background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-size:9px; font-weight:700; color:var(--accent1);
+  }
+  .result-title{
+    font-size:18px; color:var(--link); text-decoration:none; display:block;
+    margin-bottom:4px; width:fit-content; max-width:100%;
+  }
+  .result-title:hover{ text-decoration:underline; }
+  .result-desc{ font-size:13.5px; color:var(--text); line-height:1.55; opacity:0.88; }
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--muted);
+  }
+  .empty-state svg{ width:56px; height:56px; opacity:0.35; margin-bottom:16px; }
+  .empty-state h3{ font-size:17px; color:var(--text); margin-bottom:6px; font-family:'Space Grotesk',sans-serif; }
+  .empty-state p{ font-size:13.5px; max-width:340px; margin:0 auto; }
+
+  .powered-by{
+    text-align:center; font-size:11.5px; color:var(--muted); margin-top:20px;
+    padding-top:16px; border-top:1px solid var(--border-soft);
+  }
+
+  /* ---------- Modal (Gmail sign up) ---------- */
+  .overlay{
+    position:fixed; inset:0; z-index:50;
+    background:rgba(20,20,30,0.45);
+    backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    width:min(380px,100%);
+    background:var(--surface);
+    border-radius:20px;
+    padding:30px 26px 26px;
+    box-shadow:var(--shadow-lg);
+    animation:pop-in .2s ease;
+  }
+  @keyframes pop-in{ from{ transform:scale(0.94); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .modal h2{ font-size:20px; font-family:'Space Grotesk',sans-serif; margin-bottom:6px; }
+  .modal p.sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
+  .field-label{ font-size:12.5px; color:var(--muted); margin-bottom:6px; display:block; }
+  .gmail-input-wrap{
+    display:flex; align-items:center; gap:8px;
+    border:1.5px solid var(--border);
+    border-radius:10px; padding:0 12px; height:46px;
+    margin-bottom:8px;
+  }
+  .gmail-input-wrap:focus-within{ border-color:var(--accent1); }
+  .gmail-input-wrap svg{ width:18px; height:18px; color:var(--muted); flex-shrink:0; }
+  .gmail-input-wrap input{
+    flex:1; border:none; outline:none; background:transparent; font-size:14.5px; color:var(--text); height:100%;
+  }
+  .field-error{ font-size:12px; color:#e0554f; min-height:16px; margin-bottom:10px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
+  .btn-text{ background:none; border:none; color:var(--accent1); font-size:14px; font-weight:500; cursor:pointer; padding:9px 14px; border-radius:8px; }
+  .btn-text:hover{ background:var(--surface-2); }
+  .btn-solid{ background:var(--accent1); color:#fff; border:none; font-size:14px; font-weight:500; cursor:pointer; padding:9px 18px; border-radius:8px; }
+  .btn-solid:hover{ filter:brightness(1.08); }
+  .btn-solid:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  /* ---------- Account menu ---------- */
+  .account-menu{
+    position:fixed; top:60px; right:16px; z-index:50;
+    width:300px;
+    background:var(--surface);
+    border-radius:16px;
+    box-shadow:var(--shadow-lg);
+    border:1px solid var(--border-soft);
+    display:none;
+    overflow:hidden;
+  }
+  .account-menu.show{ display:block; }
+  .am-header{ padding:20px 20px 16px; text-align:center; border-bottom:1px solid var(--border-soft); }
+  .am-header .avatar{ width:52px; height:52px; font-size:20px; margin:0 auto 10px; }
+  .am-header .email{ font-size:14px; font-weight:500; word-break:break-all; }
+  .am-section{ padding:8px 8px; border-bottom:1px solid var(--border-soft); }
+  .am-section:last-child{ border-bottom:none; }
+  .am-row{
+    display:flex; align-items:center; gap:12px;
+    width:100%; padding:11px 12px; border-radius:10px;
+    background:none; border:none; cursor:pointer; text-align:left;
+    font-size:13.5px; color:var(--text);
+  }
+  .am-row:hover{ background:var(--surface-2); }
+  .am-row svg{ width:18px; height:18px; color:var(--muted); flex-shrink:0; }
+  .am-row .mini-avatar{ width:24px; height:24px; font-size:11px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--accent1),var(--accent2)); color:#fff; font-weight:600; }
+  .am-row.active{ background:var(--surface-2); font-weight:500; }
+
+  .theme-toggle-row{ display:flex; align-items:center; justify-content:space-between; padding:11px 12px; }
+  .theme-toggle-row span{ font-size:13.5px; display:flex; align-items:center; gap:10px; }
+  .theme-toggle-row svg{ width:18px; height:18px; color:var(--muted); }
+  .switch{ position:relative; width:40px; height:22px; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch-track{
+    position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background .2s;
+  }
+  .switch-track::before{
+    content:""; position:absolute; width:16px; height:16px; left:3px; top:3px;
+    background:#fff; border-radius:50%; transition:transform .2s;
+  }
+  .switch input:checked + .switch-track{ background:var(--accent1); }
+  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
+
+  @media (max-width:480px){
+    .logo-text{ font-size:42px; }
+    .account-menu{ width:calc(100vw - 24px); right:12px; }
+    .results-topbar .logo-text{ display:none; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .bg-glow{ animation:none; }
+    .skel-line::after{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="bg-glow"></div>
+
+<!-- ============ TOP BAR (home) ============ -->
+<div class="topbar" id="homeTopbar">
+  <button class="icon-btn" id="settingsBtnHome" aria-label="Settings" title="Settings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+  <button class="signin-btn" id="signinBtnHome">Sign up with Gmail</button>
+  <button class="avatar" id="avatarBtnHome" style="display:none;"></button>
+</div>
+
+<!-- ============ HOME VIEW ============ -->
+<main id="homeView">
+  <div class="logo-mark">
+    <img src="icon-120.png" alt="Sornet">
+    <span class="logo-text">Sornet</span>
+  </div>
+
+  <div class="search-shell">
+    <form id="homeForm">
+      <div class="search-pill" id="homePill">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="homeInput" autocomplete="off" placeholder="Search Sornet or type a question" aria-label="Search">
+        <button type="button" class="mic-btn" aria-label="Voice search" title="Voice search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+      </div>
+    </form>
+    <div class="home-actions">
+      <button class="action-btn" id="btnSornetSearch">Sornet Search</button>
+      <button class="action-btn ai" id="btnAiAnswer">AI Answer</button>
+    </div>
+    <p class="home-sub">Results appear right here — no redirects to other sites.</p>
+  </div>
+</main>
+
+<!-- ============ RESULTS VIEW ============ -->
+<div id="resultsView">
+  <div class="results-topbar">
+    <div class="logo-mark" id="logoBackBtn" title="Back to home">
+      <img src="icon-120.png" alt="Sornet">
+      <span class="logo-text">Sornet</span>
+    </div>
+    <form id="resultsForm" class="results-search">
+      <div class="search-pill" id="resultsPill">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="resultsInput" autocomplete="off" aria-label="Search">
+      </div>
+    </form>
+    <div class="results-top-right">
+      <button class="icon-btn" id="settingsBtnResults" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button class="signin-btn" id="signinBtnResults">Sign up</button>
+      <button class="avatar" id="avatarBtnResults" style="display:none;"></button>
+    </div>
+  </div>
+
+  <div class="results-body">
+    <p class="status-line" id="statusLine"></p>
+    <div id="resultsContent"></div>
+  </div>
+</div>
+
+<!-- ============ Gmail sign-up modal ============ -->
+<div class="overlay" id="signinOverlay">
+  <div class="modal">
+    <h2>Continue with Gmail</h2>
+    <p class="sub">Sign up to sync your Sornet preferences on this device.</p>
+    <label class="field-label" for="gmailInput">Gmail address</label>
+    <div class="gmail-input-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+      <input type="email" id="gmailInput" placeholder="yourname@gmail.com" autocomplete="email">
+    </div>
+    <p class="field-error" id="gmailError"></p>
+    <div class="modal-actions">
+      <button class="btn-text" id="cancelSignin">Cancel</button>
+      <button class="btn-solid" id="confirmSignin">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Account / settings menu ============ -->
+<div class="account-menu" id="accountMenu">
+  <div class="am-header" id="amHeader">
+    <div class="avatar" id="amAvatar" style="pointer-events:none;"></div>
+    <div class="email" id="amEmail">Not signed in</div>
+  </div>
+  <div class="am-section" id="amAccountsSection"></div>
+  <div class="am-section">
+    <div class="theme-toggle-row">
+      <span>
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        Dark mode
+      </span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch">
+        <span class="switch-track"></span>
+      </label>
+    </div>
+  </div>
+  <div class="am-section" id="amSignoutSection" style="display:none;">
+    <button class="am-row" id="signOutBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </button>
+  </div>
+</div>
+
+<script>
+/* ================= THEME ================= */
+const root = document.documentElement;
+const themeSwitch = document.getElementById('themeSwitch');
+
+function applyTheme(mode){
+  root.setAttribute('data-theme', mode);
+  themeSwitch.checked = mode === 'dark';
+  localStorage.setItem('sornet_theme', mode);
+}
+(function initTheme(){
+  const saved = localStorage.getItem('sornet_theme');
+  if(saved){ applyTheme(saved); }
+  else{
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(prefersDark ? 'dark' : 'light');
+  }
+})();
+themeSwitch.addEventListener('change', () => applyTheme(themeSwitch.checked ? 'dark' : 'light'));
+
+/* ================= ACCOUNTS (local, on-device only) ================= */
+function getAccounts(){ return JSON.parse(localStorage.getItem('sornet_accounts') || '[]'); }
+function saveAccounts(list){ localStorage.setItem('sornet_accounts', JSON.stringify(list)); }
+function getCurrentEmail(){ return localStorage.getItem('sornet_current'); }
+function setCurrentEmail(email){ localStorage.setItem('sornet_current', email); renderAccountUI(); }
+function signOutCurrent(){ localStorage.removeItem('sornet_current'); renderAccountUI(); }
+
+function initials(email){ return email.trim().charAt(0).toUpperCase(); }
+
+function renderAccountUI(){
+  const email = getCurrentEmail();
+  const signedIn = !!email;
+
+  [ ['signinBtnHome','avatarBtnHome'], ['signinBtnResults','avatarBtnResults'] ].forEach(([signId,avId]) => {
+    const signBtn = document.getElementById(signId);
+    const avBtn = document.getElementById(avId);
+    if(signedIn){
+      signBtn.style.display = 'none';
+      avBtn.style.display = 'flex';
+      avBtn.textContent = initials(email);
+    } else {
+      signBtn.style.display = 'inline-block';
+      avBtn.style.display = 'none';
+    }
+  });
+
+  document.getElementById('amAvatar').textContent = signedIn ? initials(email) : '?';
+  document.getElementById('amEmail').textContent = signedIn ? email : 'Not signed in';
+  document.getElementById('amSignoutSection').style.display = signedIn ? 'block' : 'none';
+
+  const accSection = document.getElementById('amAccountsSection');
+  accSection.innerHTML = '';
+  const accounts = getAccounts();
+
+  accounts.forEach(acc => {
+    const row = document.createElement('button');
+    row.className = 'am-row' + (acc === email ? ' active' : '');
+    row.innerHTML = `<span class="mini-avatar">${initials(acc)}</span><span>${acc}</span>`;
+    row.addEventListener('click', () => { setCurrentEmail(acc); closeAccountMenu(); });
+    accSection.appendChild(row);
+  });
+
+  const addRow = document.createElement('button');
+  addRow.className = 'am-row';
+  addRow.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>${accounts.length ? 'Add another Gmail account' : 'Sign up with Gmail'}</span>`;
+  addRow.addEventListener('click', () => { closeAccountMenu(); openSignin(); });
+  accSection.appendChild(addRow);
+}
+renderAccountUI();
+
+/* ---- Sign-in modal ---- */
+const signinOverlay = document.getElementById('signinOverlay');
+const gmailInput = document.getElementById('gmailInput');
+const gmailError = document.getElementById('gmailError');
+
+function openSignin(){
+  signinOverlay.classList.add('show');
+  gmailInput.value = '';
+  gmailError.textContent = '';
+  setTimeout(() => gmailInput.focus(), 50);
+}
+function closeSignin(){ signinOverlay.classList.remove('show'); }
+
+document.getElementById('signinBtnHome').addEventListener('click', openSignin);
+document.getElementById('signinBtnResults').addEventListener('click', openSignin);
+document.getElementById('cancelSignin').addEventListener('click', closeSignin);
+signinOverlay.addEventListener('click', e => { if(e.target === signinOverlay) closeSignin(); });
+
+document.getElementById('confirmSignin').addEventListener('click', () => {
+  const val = gmailInput.value.trim().toLowerCase();
+  if(!/^[^\s@]+@gmail\.com$/.test(val)){
+    gmailError.textContent = 'Enter a valid @gmail.com address.';
+    return;
+  }
+  const accounts = getAccounts();
+  if(!accounts.includes(val)){ accounts.push(val); saveAccounts(accounts); }
+  setCurrentEmail(val);
+  closeSignin();
+});
+gmailInput.addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('confirmSignin').click(); });
+
+/* ---- Account / settings menu open+close ---- */
+const accountMenu = document.getElementById('accountMenu');
+function toggleAccountMenu(){ accountMenu.classList.toggle('show'); }
+function closeAccountMenu(){ accountMenu.classList.remove('show'); }
+
+['avatarBtnHome','avatarBtnResults','settingsBtnHome','settingsBtnResults'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => { e.stopPropagation(); toggleAccountMenu(); });
+});
+document.addEventListener('click', e => {
+  if(!accountMenu.contains(e.target)) closeAccountMenu();
+});
+document.getElementById('signOutBtn').addEventListener('click', () => { signOutCurrent(); closeAccountMenu(); });
+
+/* ================= VIEW SWITCHING ================= */
+const homeView = document.getElementById('homeView');
+const homeTopbar = document.getElementById('homeTopbar');
+const resultsView = document.getElementById('resultsView');
+const homeInput = document.getElementById('homeInput');
+const resultsInput = document.getElementById('resultsInput');
+
+function showHome(){
+  resultsView.style.display = 'none';
+  homeView.style.display = 'flex';
+  homeTopbar.style.display = 'flex';
+  homeInput.value = '';
+  homeInput.focus();
+}
+function showResults(query){
+  homeView.style.display = 'none';
+  homeTopbar.style.display = 'none';
+  resultsView.style.display = 'flex';
+  resultsInput.value = query;
+  runSearch(query);
+}
+
+document.getElementById('logoBackBtn').addEventListener('click', showHome);
+
+document.getElementById('homeForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = homeInput.value.trim();
+  if(q) showResults(q);
+});
+document.getElementById('btnSornetSearch').addEventListener('click', () => {
+  const q = homeInput.value.trim();
+  if(q) showResults(q);
+});
+document.getElementById('btnAiAnswer').addEventListener('click', () => {
+  const q = homeInput.value.trim();
+  if(q) showResults(q);
+});
+document.getElementById('resultsForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = resultsInput.value.trim();
+  if(q) runSearch(q);
+});
+
+document.getElementById('homePill').addEventListener('focusin', function(){ this.classList.add('focused'); });
+document.getElementById('homePill').addEventListener('focusout', function(){ this.classList.remove('focused'); });
+document.getElementById('resultsPill').addEventListener('focusin', function(){ this.classList.add('focused'); });
+document.getElementById('resultsPill').addEventListener('focusout', function(){ this.classList.remove('focused'); });
+
+/* ================= SEARCH (DuckDuckGo Instant Answer API, inline — no redirect) ================= */
+const statusLine = document.getElementById('statusLine');
+const resultsContent = document.getElementById('resultsContent');
+let searchToken = 0;
+
+function jsonp(url){
+  return new Promise((resolve, reject) => {
+    const cbName = 'sornet_cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    const script = document.createElement('script');
+    window[cbName] = data => { resolve(data); cleanup(); };
+    script.onerror = () => { reject(new Error('network')); cleanup(); };
+    function cleanup(){ delete window[cbName]; script.remove(); }
+    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+    document.body.appendChild(script);
+  });
+}
+
+function domainOf(url){
+  try{ return new URL(url).hostname.replace('www.',''); }catch(e){ return url; }
+}
+
+function flattenTopics(topics){
+  const out = [];
+  (topics || []).forEach(t => {
+    if(t.Topics){ out.push(...flattenTopics(t.Topics)); }
+    else if(t.Text && t.FirstURL){ out.push(t); }
+  });
+  return out;
+}
+
+async function runSearch(query){
+  const myToken = ++searchToken;
+  statusLine.textContent = `Results for "${query}"`;
+  resultsContent.innerHTML = `
+    <div class="skeleton">
+      <div class="skel-line" style="width:60%;height:20px;"></div>
+      <div class="skel-line" style="width:95%;"></div>
+      <div class="skel-line" style="width:85%;"></div>
+      <div class="skel-line" style="width:40%;height:16px;margin-top:10px;"></div>
+      <div class="skel-line" style="width:90%;"></div>
+    </div>`;
+
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+
+  let data = null;
+  try{
+    data = await jsonp(url);
+  }catch(err){
+    data = null;
+  }
+  if(myToken !== searchToken) return; // a newer search superseded this one
+
+  renderResults(query, data);
+}
+
+function renderResults(query, data){
+  resultsContent.innerHTML = '';
+
+  const hasAbstract = data && data.AbstractText;
+  const related = data ? flattenTopics(data.RelatedTopics).slice(0, 8) : [];
+
+  if(!hasAbstract && related.length === 0){
+    statusLine.textContent = `No instant results for "${query}"`;
+    resultsContent.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <h3>No instant results found</h3>
+        <p>Sornet's live AI answers don't have anything on this yet. Try rephrasing your search or asking about a specific topic, person, or place.</p>
+      </div>`;
+    return;
+  }
+
+  statusLine.innerHTML = `Results for <b>${escapeHtml(query)}</b>`;
+
+  if(hasAbstract){
+    const card = document.createElement('div');
+    card.className = 'ai-card';
+    const img = data.Image ? `https://duckduckgo.com${data.Image}` : '';
+    card.innerHTML = `
+      <span class="ai-badge">AI Answer</span>
+      <h2>${escapeHtml(data.Heading || query)}</h2>
+      <p>${escapeHtml(data.AbstractText)}</p>
+      ${data.AbstractURL ? `<span class="ai-source">Source: <a href="${data.AbstractURL}" target="_blank" rel="noopener">${domainOf(data.AbstractURL)}</a></span>` : ''}
+    `;
+    resultsContent.appendChild(card);
+  }
+
+  related.forEach(item => {
+    const title = item.Text.includes(' - ') ? item.Text.split(' - ')[0] : item.Text;
+    const desc = item.Text;
+    const domain = domainOf(item.FirstURL);
+    const row = document.createElement('div');
+    row.className = 'result-item';
+    row.innerHTML = `
+      <div class="result-url">
+        <span class="favicon">${domain.charAt(0).toUpperCase()}</span>
+        <span>${domain}</span>
+      </div>
+      <a class="result-title" href="${item.FirstURL}" target="_blank" rel="noopener">${escapeHtml(title)}</a>
+      <div class="result-desc">${escapeHtml(desc)}</div>
+    `;
+    resultsContent.appendChild(row);
+  });
+
+  const footer = document.createElement('div');
+  footer.className = 'powered-by';
+  footer.textContent = 'AI answers and related results powered by DuckDuckGo';
+  resultsContent.appendChild(footer);
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ================= Ambient background canvas ================= */
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+let stars = [], w, h;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function resize(){
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+  const count = Math.floor((w * h) / 22000);
+  stars = Array.from({length: count}, () => ({
+    x: Math.random() * w, y: Math.random() * h,
+    r: Math.random() * 1.1 + 0.2,
+    baseAlpha: Math.random() * 0.25 + 0.05,
+    speed: Math.random() * 0.015 + 0.004,
+    phase: Math.random() * Math.PI * 2
+  }));
+}
+function draw(){
+  ctx.clearRect(0,0,w,h);
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  for(const s of stars){
+    s.phase += s.speed;
+    const alpha = Math.max(0, s.baseAlpha + Math.sin(s.phase) * 0.12);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = isDark ? `rgba(230,225,255,${alpha})` : `rgba(107,78,255,${alpha*0.5})`;
+    ctx.fill();
+  }
+  if(!reduceMotion) requestAnimationFrame(draw);
+}
+resize();
+window.addEventListener('resize', resize);
+draw();
+
+/* ================= Service worker ================= */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+/* ================= PWA install prompt (kept silent unless available) ================= */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; });
+
+homeInput.focus();
+</script>
+</body>
+</html>
