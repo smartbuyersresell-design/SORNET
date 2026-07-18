@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sornet — Search at the speed of thought</title>
+<meta name="description" content="Sornet: ලෝකයේ අංක 1 වේගවත්ම, ලස්සනම සෙවුම් අත්දැකීම.">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
+
+<!-- PWA: installable on Android (Chrome install prompt) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a16">
+
+<!-- PWA: installable on iOS (Add to Home Screen) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sornet">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a16;
+    --bg2:#12112a;
+    --accent1:#7c5cff;
+    --accent2:#29e0ff;
+    --accent3:#ff5fa2;
+    --text:#f2f0ff;
+    --muted:#9490b8;
+    --glass:rgba(255,255,255,0.045);
+    --glass-border:rgba(255,255,255,0.09);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,92,255,0.28), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 90%, rgba(41,224,255,0.14), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  canvas#stars{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    pointer-events:none;
+  }
+  .nebula{
+    position:fixed;
+    top:50%; left:50%;
+    width:900px; height:900px;
+    transform:translate(-50%,-52%);
+    background:conic-gradient(from 0deg, rgba(124,92,255,0.16), rgba(41,224,255,0.10), rgba(255,95,162,0.10), rgba(124,92,255,0.16));
+    filter:blur(90px);
+    border-radius:50%;
+    z-index:0;
+    animation:spin-slow 40s linear infinite;
+    pointer-events:none;
+  }
+  @keyframes spin-slow{ to{ transform:translate(-50%,-52%) rotate(360deg); } }
+
+  header{
+    position:relative;
+    z-index:2;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:28px 40px;
+  }
+  .brand-mini{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:0.3px;
+    color:var(--text);
+  }
+  .brand-mini .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    box-shadow:0 0 14px var(--accent1);
+  }
+  nav a{
+    color:var(--muted);
+    text-decoration:none;
+    font-size:14px;
+    margin-left:26px;
+    transition:color .2s ease;
+  }
+  nav a:hover, nav a:focus-visible{ color:var(--text); }
+
+  main{
+    position:relative;
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:82vh;
+    padding:20px 24px 60px;
+    text-align:center;
+  }
+
+  .logo-wrap{
+    position:relative;
+    margin-bottom:14px;
+  }
+  .logo{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(48px,9vw,84px);
+    letter-spacing:-2px;
+    background:linear-gradient(120deg, #ffffff 10%, var(--accent2) 45%, var(--accent1) 75%, var(--accent3) 100%);
+    background-size:200% auto;
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:shine 6s ease-in-out infinite;
+    line-height:1;
+  }
+  @keyframes shine{
+    0%,100%{ background-position:0% 50%; }
+    50%{ background-position:100% 50%; }
+  }
+  .tagline{
+    font-size:15px;
+    color:var(--muted);
+    margin-top:10px;
+    letter-spacing:0.2px;
+  }
+  .tagline .si{
+    display:block;
+    margin-top:4px;
+    font-size:13.5px;
+    color:#78749c;
+  }
+
+  .portal{
+    position:relative;
+    margin-top:46px;
+    width:min(640px,90vw);
+  }
+  .ring{
+    position:absolute;
+    inset:-3px;
+    border-radius:999px;
+    padding:2px;
+    background:conic-gradient(from 0deg, var(--accent1), var(--accent2), var(--accent3), var(--accent1));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity:0;
+    transition:opacity .35s ease;
+    animation:spin-ring 4s linear infinite;
+  }
+  @keyframes spin-ring{ to{ transform:rotate(360deg); } }
+  .searchbar-outer.focused .ring{ opacity:1; }
+  .searchbar-outer.focused .glow{ opacity:1; }
+  .glow{
+    position:absolute;
+    inset:-30px;
+    border-radius:999px;
+    background:radial-gradient(closest-side, rgba(124,92,255,0.35), transparent 70%);
+    opacity:0;
+    transition:opacity .35s ease;
+    z-index:-1;
+    filter:blur(6px);
+  }
+
+  form{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    backdrop-filter:blur(18px);
+    border-radius:999px;
+    padding:8px 8px 8px 22px;
+    transition:transform .25s ease, background .25s ease;
+  }
+  .searchbar-outer.focused form{
+    background:rgba(255,255,255,0.065);
+    transform:translateY(-1px);
+  }
+  form svg{ flex-shrink:0; opacity:.7; }
+  input[type="text"]{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:16.5px;
+    padding:12px 4px;
+  }
+  input::placeholder{ color:#736f96; }
+  button.go{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#0a0a16;
+    border:none;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    padding:13px 24px;
+    border-radius:999px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:filter .2s ease, transform .15s ease;
+  }
+  button.go:hover{ filter:brightness(1.12); }
+  button.go:active{ transform:scale(0.97); }
+
+  .engines{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:22px;
+  }
+  .chip{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    color:var(--muted);
+    background:rgba(255,255,255,0.03);
+    border:1px solid var(--glass-border);
+    padding:8px 15px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .chip:hover{ color:var(--text); border-color:rgba(255,255,255,0.22); }
+  .chip.active{
+    color:#0a0a16;
+    background:linear-gradient(135deg,var(--accent2),var(--accent1));
+    border-color:transparent;
+    font-weight:500;
+  }
+
+  .trending{
+    margin-top:40px;
+    display:flex;
+    gap:9px;
+    flex-wrap:wrap;
+    justify-content:center;
+    max-width:600px;
+  }
+  .trending span{
+    font-size:12.5px;
+    color:#716d94;
+    background:transparent;
+    border:1px dashed rgba(255,255,255,0.13);
+    padding:6px 13px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:all .2s ease;
+  }
+  .trending span:hover{ color:var(--accent2); border-color:var(--accent2); }
+
+  footer{
+    position:relative;
+    z-index:2;
+    text-align:center;
+    padding:26px 20px 34px;
+    font-size:12px;
+    color:#565277;
+  }
+  footer a{ color:#7d78a5; text-decoration:none; }
+
+  @media (max-width:480px){
+    header{ padding:20px; }
+    nav a{ margin-left:16px; font-size:13px; }
+    button.go{ padding:13px 18px; font-size:13px; }
+  }
+
+  .install-btn{
+    display:none;
+    align-items:center;
+    gap:8px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--glass-border);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13.5px;
+    font-weight:500;
+    padding:9px 16px 9px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+    transition:all .2s ease;
+  }
+  .install-btn.show{ display:inline-flex; }
+  .install-btn:hover{ border-color:var(--accent2); background:rgba(41,224,255,0.08); }
+  .install-btn img{ width:18px; height:18px; border-radius:5px; }
+
+  .ios-sheet{
+    position:fixed;
+    inset:0;
+    background:rgba(6,6,14,0.72);
+    backdrop-filter:blur(6px);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  .ios-sheet.show{ display:flex; }
+  .ios-sheet-inner{
+    width:min(480px,100%);
+    background:#12112a;
+    border:1px solid var(--glass-border);
+    border-bottom:none;
+    border-radius:24px 24px 0 0;
+    padding:26px 24px 34px;
+    text-align:left;
+    animation:sheet-up .3s ease;
+  }
+  @keyframes sheet-up{ from{ transform:translateY(30px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .ios-sheet-inner h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:18px;
+    margin-bottom:14px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .ios-sheet-inner img.brand-icon{ width:30px; height:30px; border-radius:8px; }
+  .ios-sheet-inner ol{
+    margin:0 0 20px 18px;
+    color:#c9c6e0;
+    font-size:14.5px;
+    line-height:1.9;
+  }
+  .ios-sheet-inner .share-glyph{
+    display:inline-block;
+    padding:1px 8px;
+    border:1px solid #48446a;
+    border-radius:6px;
+    font-size:12.5px;
+    color:var(--accent2);
+  }
+  .ios-sheet-close{
+    width:100%;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#0a0a16;
+    border:none;
+    padding:12px;
+    border-radius:12px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .nebula, .logo, .ring{ animation:none !important; }
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="nebula"></div>
+
+<header>
+  <div class="brand-mini"><span class="dot"></span> Sornet</div>
+  <nav style="display:flex; align-items:center;">
+    <button class="install-btn" id="installBtn">
+      <img src="icons/icon-32.png" alt="">
+      Install App
+    </button>
+    <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+    <a href="#about-sornet" id="about-link">About</a>
+  </nav>
+</header>
+
+<div class="ios-sheet" id="iosSheet">
+  <div class="ios-sheet-inner">
+    <h3><img class="brand-icon" src="icons/icon-120.png" alt="Sornet">Install Sornet</h3>
+    <ol>
+      <li>පහළින් ඇති <span class="share-glyph">Share ⬆</span> බටනය touch කරන්න</li>
+      <li>"Add to Home Screen" තෝරන්න</li>
+      <li>"Add" touch කරන්න — Sornet ඔයාගේ home screen එකට එකතු වෙනවා</li>
+    </ol>
+    <button class="ios-sheet-close" id="iosSheetClose">Got it</button>
+  </div>
+</div>
+
+<main>
+  <div class="logo-wrap">
+    <div class="logo">Sornet</div>
+  </div>
+  <p class="tagline">
+    Search at the speed of thought.
+    <span class="si">ලෝකයේ අංක 1 වේගවත්ම, ලස්සනම සෙවුම් අත්දැකීම — Sornet සමඟ.</span>
+  </p>
+
+  <div class="portal">
+    <div class="searchbar-outer" id="searchbarOuter">
+      <div class="ring"></div>
+      <div class="glow"></div>
+      <form id="searchForm" role="search" aria-label="Sornet search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <label for="q" style="position:absolute;left:-9999px;">Search Sornet</label>
+        <input type="text" id="q" name="q" autocomplete="off" placeholder="Ask Sornet anything..." />
+        <button type="submit" class="go">Search →</button>
+      </form>
+    </div>
+
+    <div class="engines" id="engineChips">
+      <div class="chip active" data-engine="google">Google</div>
+      <div class="chip" data-engine="bing">Bing</div>
+      <div class="chip" data-engine="duckduckgo">DuckDuckGo</div>
+      <div class="chip" data-engine="youtube">YouTube</div>
+    </div>
+
+    <div class="trending" id="trending"></div>
+  </div>
+</main>
+
+<footer id="about-sornet">
+  Sornet · Built for speed and wonder · <a href="https://github.com/" target="_blank" rel="noopener">Open sourced on GitHub</a>
+</footer>
+
+<script>
+  // ---------- Starfield canvas ----------
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  let w, h;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    const count = Math.floor((w * h) / 9000);
+    stars = Array.from({length: count}, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 1.3 + 0.2,
+      baseAlpha: Math.random() * 0.6 + 0.15,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      phase: Math.random() * Math.PI * 2,
+      driftX: (Math.random() - 0.5) * 0.02,
+      driftY: (Math.random() - 0.5) * 0.02
+    }));
+  }
+
+  let mx = 0, my = 0;
+  window.addEventListener('mousemove', e => {
+    mx = (e.clientX / w - 0.5) * 10;
+    my = (e.clientY / h - 0.5) * 10;
+  });
+
+  function draw(t){
+    ctx.clearRect(0, 0, w, h);
+    for(const s of stars){
+      s.phase += s.twinkleSpeed;
+      const alpha = s.baseAlpha + Math.sin(s.phase) * 0.25;
+      s.x += s.driftX;
+      s.y += s.driftY;
+      if(s.x < 0) s.x = w; if(s.x > w) s.x = 0;
+      if(s.y < 0) s.y = h; if(s.y > h) s.y = 0;
+      ctx.beginPath();
+      ctx.arc(s.x + mx, s.y + my, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(242,240,255,${Math.max(0, Math.min(1, alpha))})`;
+      ctx.fill();
+    }
+    if(!reduceMotion) requestAnimationFrame(draw);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  draw();
+  if(reduceMotion){ draw(); }
+
+  // ---------- Search form logic ----------
+  const engines = {
+    google: q => `https://www.google.com/search?q=${q}`,
+    bing: q => `https://www.bing.com/search?q=${q}`,
+    duckduckgo: q => `https://duckduckgo.com/?q=${q}`,
+    youtube: q => `https://www.youtube.com/results?search_query=${q}`
+  };
+  let activeEngine = 'google';
+
+  const chips = document.querySelectorAll('.chip');
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeEngine = chip.dataset.engine;
+      document.getElementById('q').focus();
+    });
+  });
+
+  const form = document.getElementById('searchForm');
+  const input = document.getElementById('q');
+  const outer = document.getElementById('searchbarOuter');
+
+  input.addEventListener('focus', () => outer.classList.add('focused'));
+  input.addEventListener('blur', () => outer.classList.remove('focused'));
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const query = input.value.trim();
+    if(!query) { input.focus(); return; }
+    const url = engines[activeEngine](encodeURIComponent(query));
+    window.location.href = url;
+  });
+
+  // ---------- Rotating placeholder ----------
+  const examples = [
+    "black hole time dilation",
+    "best sri lankan street food",
+    "how to learn python fast",
+    "climate change solutions 2026",
+    "space tourism prices",
+    "ai research breakthroughs"
+  ];
+  let exIndex = 0, charIndex = 0, deleting = false;
+
+  function typePlaceholder(){
+    if(document.activeElement === input || input.value.length){
+      setTimeout(typePlaceholder, 400);
+      return;
+    }
+    const current = examples[exIndex];
+    if(!deleting){
+      charIndex++;
+      input.placeholder = "Ask Sornet: " + current.slice(0, charIndex);
+      if(charIndex === current.length){ deleting = true; setTimeout(typePlaceholder, 1400); return; }
+    } else {
+      charIndex--;
+      input.placeholder = "Ask Sornet: " + current.slice(0, charIndex);
+      if(charIndex === 0){ deleting = false; exIndex = (exIndex + 1) % examples.length; }
+    }
+    setTimeout(typePlaceholder, deleting ? 30 : 55);
+  }
+  if(!reduceMotion) typePlaceholder();
+
+  // ---------- PWA install (Android/Chrome native prompt) ----------
+  const installBtn = document.getElementById('installBtn');
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.classList.add('show');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.classList.remove('show');
+    deferredPrompt = null;
+  });
+
+  // ---------- iOS: no native prompt exists, show manual instructions ----------
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+  const iosSheet = document.getElementById('iosSheet');
+  const iosSheetClose = document.getElementById('iosSheetClose');
+
+  if (isIos && !isInStandaloneMode) {
+    installBtn.classList.add('show');
+  }
+
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installBtn.classList.remove('show');
+    } else if (isIos) {
+      iosSheet.classList.add('show');
+    }
+  });
+
+  iosSheetClose.addEventListener('click', () => iosSheet.classList.remove('show'));
+  iosSheet.addEventListener('click', (e) => { if (e.target === iosSheet) iosSheet.classList.remove('show'); });
+
+  // ---------- Register service worker (offline support) ----------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
+  // ---------- Trending chips ----------
+  const trendingItems = ["cosmic rays", "web design 2026", "sri lanka travel", "quantum computing", "sornet github"];
+  const trendingEl = document.getElementById('trending');
+  trendingItems.forEach(item => {
+    const span = document.createElement('span');
+    span.textContent = item;
+    span.addEventListener('click', () => {
+      input.value = item;
+      form.dispatchEvent(new Event('submit'));
+    });
+    trendingEl.appendChild(span);
+  });
+</script>
+
+</body>
+</html>
