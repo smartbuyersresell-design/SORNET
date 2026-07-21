@@ -1,1258 +1,659 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
-<title>Sornet Search</title>
-<meta name="description" content="Sornet — fast, clean, AI-powered search that stays right where you are.">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SORNET Search Engine</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d1117">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+        body {
+            background-color: #0d1117;
+            color: #e6edf3;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
 
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Sornet">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-<link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
-<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
-<link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
+        /* Animated Canvas Background */
+        #bg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Google+Sans:wght@400;500&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+        .app-container {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
 
-<style>
-  :root{
-    --bg:#ffffff;
-    --surface:#ffffff;
-    --surface-2:#f8f9fa;
-    --text:#202124;
-    --muted:#5f6368;
-    --border:#dfe1e5;
-    --border-soft:#ebebeb;
-    --link:#5b3df0;
-    --link-visited:#7c5cff;
-    --accent1:#6b4eff;
-    --accent2:#29b8d8;
-    --accent3:#ff5fa2;
-    --shadow:0 1px 6px rgba(32,33,36,0.18);
-    --shadow-lg:0 4px 22px rgba(32,33,36,0.16);
-    --radius:24px;
-  }
-  html[data-theme="dark"]{
-    --bg:#0b0b12;
-    --surface:#151521;
-    --surface-2:#1c1c2b;
-    --text:#e8e6f0;
-    --muted:#a09cc0;
-    --border:#2c2c40;
-    --border-soft:#232235;
-    --link:#9ea8ff;
-    --link-visited:#c9a8ff;
-    --shadow:0 1px 6px rgba(0,0,0,0.5);
-    --shadow-lg:0 8px 30px rgba(0,0,0,0.55);
-  }
+        /* Top Bar & Tabs */
+        header {
+            background: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+        }
 
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html,body{ height:100%; }
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Roboto','Google Sans',Arial,sans-serif;
-    min-height:100dvh;
-    overflow-x:hidden;
-    transition:background .25s ease, color .25s ease;
-    position:relative;
-  }
+        .tabs-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(13, 17, 23, 0.5);
+            padding: 6px 8px 0 8px;
+            overflow-x: auto;
+        }
 
-  canvas#bg{
-    position:fixed; inset:0; width:100%; height:100%;
-    z-index:0; pointer-events:none; opacity:0.6;
-  }
-  .bg-glow{
-    position:fixed; top:-10%; left:50%; width:900px; height:900px;
-    transform:translateX(-50%);
-    background:conic-gradient(from 0deg, rgba(107,78,255,0.07), rgba(41,184,216,0.06), rgba(255,95,162,0.05), rgba(107,78,255,0.07));
-    filter:blur(100px);
-    border-radius:50%;
-    z-index:0; pointer-events:none;
-    animation:spin-slow 60s linear infinite;
-  }
-  @keyframes spin-slow{ to{ transform:translateX(-50%) rotate(360deg); } }
+        .tab {
+            display: flex;
+            align-items: center;
+            background: #161b22;
+            color: #8b949e;
+            padding: 6px 12px;
+            border-radius: 8px 8px 0 0;
+            margin-right: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            max-width: 180px;
+            min-width: 100px;
+            border: 1px solid transparent;
+            border-bottom: none;
+            user-select: none;
+        }
 
-  a{ color:var(--link); text-decoration:none; }
-  a:hover{ text-decoration:underline; }
-  button{ font-family:inherit; }
+        .tab.active {
+            background: #21262d;
+            color: #58a6ff;
+            border-color: #30363d;
+            font-weight: 600;
+        }
 
-  .topbar{
-    position:relative; z-index:5;
-    display:flex; align-items:center; justify-content:flex-end;
-    gap:14px;
-    padding:14px 18px;
-    padding-top:calc(14px + env(safe-area-inset-top));
-    background:var(--bg);
-    border-bottom:1px solid var(--border-soft);
-  }
-  .topbar-left{
-    display:flex; align-items:center; gap:12px; margin-right:auto;
-  }
-  .icon-btn{
-    width:40px; height:40px;
-    border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:transparent;
-    border:none;
-    cursor:pointer;
-    color:var(--muted);
-    transition:background .15s ease, color .15s ease;
-  }
-  .icon-btn:hover{ background:var(--surface-2); color:var(--text); }
-  .icon-btn svg{ width:20px; height:20px; }
+        .tab-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
 
-  .signin-btn{
-    background:var(--accent1);
-    color:#fff;
-    border:none;
-    padding:9px 20px;
-    border-radius:20px;
-    font-size:14px;
-    font-weight:500;
-    cursor:pointer;
-    transition:filter .15s ease;
-  }
-  .signin-btn:hover{ filter:brightness(1.08); }
+        .tab-close {
+            margin-left: 8px;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
 
-  .avatar{
-    width:34px; height:34px;
-    border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    color:#fff;
-    font-size:14px;
-    font-weight:600;
-    cursor:pointer;
-    border:none;
-    font-family:'Space Grotesk',sans-serif;
-    transition:transform .2s;
-  }
-  .avatar:hover{ transform:scale(1.05); }
+        .tab-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
 
-  .tab-bar{
-    position:relative; z-index:4;
-    display:flex; align-items:center; gap:4px;
-    padding:0 12px;
-    background:var(--bg);
-    border-bottom:1px solid var(--border-soft);
-    overflow-x:auto;
-    -ms-overflow-style:none;
-    scrollbar-width:none;
-    height:48px;
-  }
-  .tab-bar::-webkit-scrollbar{ display:none; }
-  .tab-item{
-    display:flex; align-items:center; gap:8px;
-    background:var(--surface-2);
-    border:1px solid var(--border-soft);
-    border-radius:8px 8px 0 0;
-    padding:8px 12px;
-    cursor:pointer;
-    color:var(--text);
-    font-size:13px;
-    min-width:120px;
-    max-width:200px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    transition:all .2s ease;
-    border-bottom-color:transparent;
-  }
-  .tab-item:hover{ background:var(--surface); }
-  .tab-item.active{
-    background:var(--surface);
-    color:var(--text);
-    border-bottom:2px solid var(--accent1);
-    font-weight:500;
-  }
-  .tab-item .close-tab{
-    display:flex; align-items:center; justify-content:center;
-    width:20px; height:20px;
-    border-radius:50%;
-    background:transparent;
-    border:none;
-    color:var(--muted);
-    cursor:pointer;
-    padding:0;
-    flex-shrink:0;
-    transition:background .15s;
-  }
-  .tab-item .close-tab:hover{ background:var(--border-soft); }
-  .tab-item .close-tab svg{ width:14px; height:14px; }
+        .new-tab-btn {
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            font-size: 18px;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
 
-  .new-tab-btn{
-    width:40px; height:40px;
-    border-radius:50%;
-    background:transparent;
-    border:none;
-    cursor:pointer;
-    color:var(--accent1);
-    display:flex; align-items:center; justify-content:center;
-    transition:background .15s;
-    flex-shrink:0;
-  }
-  .new-tab-btn:hover{ background:var(--surface-2); }
-  .new-tab-btn svg{ width:20px; height:20px; }
+        .new-tab-btn:hover {
+            background: #21262d;
+            color: #fff;
+        }
 
-  #homeView{
-    position:relative; z-index:2;
-    display:flex; flex-direction:column; align-items:center;
-    justify-content:center;
-    min-height:calc(100dvh - 68px);
-    padding:20px 20px 60px;
-    animation:fadeIn .4s ease;
-  }
-  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+        /* Navigation Control Bar */
+        .nav-bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            gap: 8px;
+        }
 
-  .logo-mark{
-    display:flex; align-items:center; gap:2px;
-    margin-bottom:26px;
-    user-select:none;
-  }
-  .logo-mark img{ width:44px; height:44px; border-radius:11px; }
-  .logo-text{
-    font-family:'Space Grotesk',sans-serif;
-    font-weight:700;
-    font-size:52px;
-    letter-spacing:-1.5px;
-    background:linear-gradient(120deg,var(--accent1) 15%, var(--accent2) 55%, var(--accent3) 90%);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-  }
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: #c9d1d9;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
 
-  .search-shell{ width:min(560px,92vw); }
-  .search-pill{
-    display:flex; align-items:center; gap:10px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    border-radius:24px;
-    padding:0 18px;
-    height:48px;
-    box-shadow:var(--shadow);
-    transition:box-shadow .18s ease, border-color .18s ease;
-    position:relative;
-  }
-  .search-pill:hover, .search-pill.focused{
-    box-shadow:var(--shadow-lg);
-    border-color:transparent;
-  }
-  .search-pill svg.search-icon{ color:var(--muted); flex-shrink:0; width:18px; height:18px; }
-  .search-pill input{
-    flex:1; border:none; outline:none; background:transparent;
-    color:var(--text); font-size:16px; height:100%;
-  }
-  .search-pill input::placeholder{ color:var(--muted); }
-  .search-suggestions{
-    position:absolute; top:100%; left:0; right:0;
-    background:var(--surface);
-    border:1px solid var(--border-soft);
-    border-top:none;
-    border-radius:0 0 16px 16px;
-    box-shadow:var(--shadow);
-    display:none;
-    z-index:10;
-    max-height:300px;
-    overflow-y:auto;
-  }
-  .search-suggestions.show{ display:block; }
-  .suggestion-item{
-    padding:12px 18px;
-    border-bottom:1px solid var(--border-soft);
-    cursor:pointer;
-    display:flex; align-items:center; gap:10px;
-    font-size:14px;
-    transition:background .1s;
-  }
-  .suggestion-item:last-child{ border-bottom:none; }
-  .suggestion-item:hover{ background:var(--surface-2); }
-  .suggestion-item svg{ width:16px; height:16px; color:var(--muted); }
+        .nav-btn:hover {
+            background: #30363d;
+        }
 
-  .mic-btn{ background:none; border:none; cursor:pointer; color:var(--accent1); display:flex; }
+        .search-input-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 20px;
+            padding: 0 12px;
+        }
 
-  .home-actions{
-    display:flex; gap:12px; justify-content:center;
-    margin-top:26px; flex-wrap:wrap;
-  }
-  .action-btn{
-    background:var(--surface-2);
-    border:1px solid var(--surface-2);
-    color:var(--text);
-    font-size:14px;
-    padding:9px 18px;
-    border-radius:6px;
-    cursor:pointer;
-    transition:border-color .15s ease, background .15s ease;
-  }
-  .action-btn:hover{ border-color:var(--border); background:var(--surface); }
-  .action-btn.ai{ color:var(--accent1); font-weight:500; }
+        .search-input-container:focus-within {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
+        }
 
-  .engine-row{
-    display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
-    margin-top:18px;
-  }
-  .engine-chip{
-    display:flex; align-items:center; gap:7px;
-    background:var(--surface);
-    border:1.5px solid var(--border);
-    color:var(--muted);
-    font-size:12.5px; font-weight:500;
-    padding:7px 14px 7px 8px;
-    border-radius:20px;
-    cursor:pointer;
-    transition:all .15s ease;
-  }
-  .engine-chip:hover{ border-color:var(--accent1); color:var(--text); }
-  .engine-chip.active{
-    background:var(--accent1);
-    border-color:var(--accent1);
-    color:#fff;
-  }
-  .engine-chip .eng-badge{
-    width:19px; height:19px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:10.5px; font-weight:700;
-    flex-shrink:0;
-    color:#fff;
-  }
-  .engine-chip.active .eng-badge{ background:rgba(255,255,255,0.25) !important; }
-  .eng-sornet{ background:linear-gradient(135deg,var(--accent1),var(--accent2)); }
-  .eng-google{ background:#4285f4; }
-  .eng-bing{ background:#008373; }
-  .eng-duckduckgo{ background:#de5833; }
-  .eng-yahoo{ background:#6001d2; }
+        .search-bar {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #e6edf3;
+            padding: 8px 4px;
+            font-size: 14px;
+        }
 
-  .engine-strip{
-    display:flex; gap:8px; padding:10px 18px;
-    overflow-x:auto; border-bottom:1px solid var(--border-soft);
-    -ms-overflow-style:none; scrollbar-width:none;
-  }
-  .engine-strip::-webkit-scrollbar{ display:none; }
-  .engine-strip .engine-chip{ flex-shrink:0; }
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            position: relative;
+        }
 
-  .redirect-card{
-    background:var(--surface-2); border:1px solid var(--border-soft);
-    border-radius:16px; padding:26px 22px; text-align:center;
-  }
-  .redirect-card .eng-badge{ width:44px; height:44px; font-size:18px; margin:0 auto 14px; }
-  .redirect-card h3{ font-family:'Space Grotesk',sans-serif; font-size:17px; margin-bottom:8px; }
-  .redirect-card p{ font-size:13.5px; color:var(--muted); margin-bottom:16px; }
-  .redirect-card .btn-solid{ display:inline-block; }
+        .tab-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
 
-  .home-sub{
-    margin-top:34px; font-size:12.5px; color:var(--muted); text-align:center;
-  }
+        .tab-view.active {
+            display: flex;
+        }
 
-  #resultsView{
-    position:relative; z-index:2;
-    display:none;
-    min-height:100dvh;
-    flex-direction:column;
-  }
-  .results-topbar{
-    display:flex; align-items:center; gap:18px;
-    padding:12px 18px;
-    padding-top:calc(12px + env(safe-area-inset-top));
-    border-bottom:1px solid var(--border-soft);
-    background:var(--bg);
-    position:sticky; top:0; z-index:6;
-  }
-  .results-topbar .logo-mark{ margin:0; cursor:pointer; }
-  .results-topbar .logo-mark img{ width:32px; height:32px; border-radius:8px; }
-  .results-topbar .logo-text{ font-size:22px; }
-  .results-search{ flex:1; max-width:600px; position:relative; }
-  .results-search .search-pill{ height:44px; box-shadow:none; border-color:var(--border); }
-  .results-search .search-pill:hover, .results-search .search-pill.focused{ box-shadow:var(--shadow); }
-  .results-top-right{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+        }
 
-  .results-body{
-    width:min(680px,94vw);
-    margin:0 auto;
-    padding:20px 6px 80px;
-  }
+        /* Home Page Inside Tab */
+        .home-container {
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
 
-  .status-line{ font-size:13px; color:var(--muted); margin-bottom:18px; }
-  .status-line b{ color:var(--text); }
+        .logo {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #58a6ff, #a5d6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+        }
 
-  .skeleton{ display:flex; flex-direction:column; gap:22px; }
-  .skel-line{ height:12px; border-radius:6px; background:var(--surface-2); position:relative; overflow:hidden; }
-  .skel-line::after{
-    content:""; position:absolute; inset:0;
-    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-    animation:shimmer 1.3s infinite;
-  }
-  html[data-theme="dark"] .skel-line::after{ background:linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); }
-  @keyframes shimmer{ from{ transform:translateX(-100%); } to{ transform:translateX(100%); } }
+        .main-search-box {
+            display: flex;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 28px;
+            padding: 6px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
 
-  .ai-card{
-    background:var(--surface-2);
-    border:1px solid var(--border-soft);
-    border-radius:16px;
-    padding:20px 22px;
-    margin-bottom:26px;
-    animation:slideUp .3s ease;
-  }
-  @keyframes slideUp{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+        .main-search-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #e6edf3;
+            font-size: 16px;
+            padding: 8px;
+        }
 
-  .ai-card .ai-badge{
-    display:inline-flex; align-items:center; gap:6px;
-    font-size:11.5px; font-weight:700; letter-spacing:0.4px;
-    color:#fff;
-    background:linear-gradient(120deg,var(--accent1),var(--accent2));
-    padding:3px 10px; border-radius:20px;
-    margin-bottom:12px;
-    text-transform:uppercase;
-  }
-  .ai-card h2{ font-size:19px; margin-bottom:8px; font-family:'Space Grotesk',sans-serif; }
-  .ai-card p{ font-size:14.5px; line-height:1.65; color:var(--text); }
-  .ai-card .ai-source{ display:block; margin-top:12px; font-size:12.5px; color:var(--muted); }
-  .ai-card .ai-source a{ color:var(--link); }
+        .main-search-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
 
-  .result-item{ margin-bottom:26px; max-width:100%; animation:slideUp .3s ease; }
-  .result-url{
-    display:flex; align-items:center; gap:8px;
-    font-size:12.5px; color:var(--muted); margin-bottom:3px;
-  }
-  .result-url .favicon{
-    width:16px; height:16px; border-radius:50%; background:var(--surface-2);
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-    font-size:9px; font-weight:700; color:var(--accent1);
-  }
-  .result-title{
-    font-size:18px; color:var(--link); display:block;
-    margin-bottom:4px; width:fit-content; max-width:100%;
-    transition:color .2s;
-  }
-  .result-title:hover{ color:var(--accent1); }
-  .result-desc{ font-size:13.5px; color:var(--text); line-height:1.55; opacity:0.88; }
+        .main-search-btn:hover {
+            background: #2ea043;
+        }
 
-  .empty-state{
-    text-align:center; padding:60px 20px; color:var(--muted);
-  }
-  .empty-state svg{ width:56px; height:56px; opacity:0.35; margin-bottom:16px; }
-  .empty-state h3{ font-size:17px; color:var(--text); margin-bottom:6px; font-family:'Space Grotesk',sans-serif; }
-  .empty-state p{ font-size:13.5px; max-width:340px; margin:0 auto; }
+        /* Drawer Overlay (History / Downloads) */
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100%;
+            background: #161b22;
+            border-left: 1px solid #30363d;
+            z-index: 100;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 15px rgba(0, 0, 0, 0.5);
+        }
 
-  .powered-by{
-    text-align:center; font-size:11.5px; color:var(--muted); margin-top:20px;
-    padding-top:16px; border-top:1px solid var(--border-soft);
-  }
+        .drawer.open {
+            right: 0;
+        }
 
-  .overlay{
-    position:fixed; inset:0; z-index:50;
-    background:rgba(20,20,30,0.45);
-    backdrop-filter:blur(3px);
-    display:none; align-items:center; justify-content:center;
-    padding:20px;
-  }
-  .overlay.show{ display:flex; }
-  .modal{
-    width:min(380px,100%);
-    background:var(--surface);
-    border-radius:20px;
-    padding:30px 26px 26px;
-    box-shadow:var(--shadow-lg);
-    animation:pop-in .2s ease;
-  }
-  @keyframes pop-in{ from{ transform:scale(0.94); opacity:0; } to{ transform:scale(1); opacity:1; } }
-  .modal h2{ font-size:20px; font-family:'Space Grotesk',sans-serif; margin-bottom:6px; }
-  .modal p.sub{ font-size:13px; color:var(--muted); margin-bottom:20px; }
-  .field-label{ font-size:12.5px; color:var(--muted); margin-bottom:6px; display:block; }
-  .gmail-input-wrap{
-    display:flex; align-items:center; gap:8px;
-    border:1.5px solid var(--border);
-    border-radius:10px; padding:0 12px; height:46px;
-    margin-bottom:8px;
-  }
-  .gmail-input-wrap:focus-within{ border-color:var(--accent1); }
-  .gmail-input-wrap svg{ width:18px; height:18px; color:var(--muted); flex-shrink:0; }
-  .gmail-input-wrap input{
-    flex:1; border:none; outline:none; background:transparent; font-size:14.5px; color:var(--text); height:100%;
-  }
-  .field-error{ font-size:12px; color:#e0554f; min-height:16px; margin-bottom:10px; }
-  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
-  .btn-text{ background:none; border:none; color:var(--accent1); font-size:14px; font-weight:500; cursor:pointer; padding:9px 14px; border-radius:8px; }
-  .btn-text:hover{ background:var(--surface-2); }
-  .btn-solid{ background:var(--accent1); color:#fff; border:none; font-size:14px; font-weight:500; cursor:pointer; padding:9px 18px; border-radius:8px; }
-  .btn-solid:hover{ filter:brightness(1.08); }
-  .btn-solid:disabled{ opacity:0.5; cursor:not-allowed; }
+        .drawer-header {
+            padding: 16px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-  .account-menu{
-    position:fixed; top:60px; right:16px; z-index:50;
-    width:300px;
-    background:var(--surface);
-    border-radius:16px;
-    box-shadow:var(--shadow-lg);
-    border:1px solid var(--border-soft);
-    display:none;
-    overflow:hidden;
-    animation:slideDown .2s ease;
-  }
-  @keyframes slideDown{ from{ opacity:0; transform:translateY(-10px); } to{ opacity:1; transform:translateY(0); } }
-  .account-menu.show{ display:block; }
-  .am-header{ padding:20px 20px 16px; text-align:center; border-bottom:1px solid var(--border-soft); }
-  .am-header .avatar{ width:52px; height:52px; font-size:20px; margin:0 auto 10px; }
-  .am-header .email{ font-size:14px; font-weight:500; word-break:break-all; }
-  .am-section{ padding:8px 8px; border-bottom:1px solid var(--border-soft); }
-  .am-section:last-child{ border-bottom:none; }
-  .am-row{
-    display:flex; align-items:center; gap:12px;
-    width:100%; padding:11px 12px; border-radius:10px;
-    background:none; border:none; cursor:pointer; text-align:left;
-    font-size:13.5px; color:var(--text);
-    transition:background .15s;
-  }
-  .am-row:hover{ background:var(--surface-2); }
-  .am-row svg{ width:18px; height:18px; color:var(--muted); flex-shrink:0; }
-  .am-row .mini-avatar{ width:24px; height:24px; font-size:11px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--accent1),var(--accent2)); color:#fff; font-weight:600; }
-  .am-row.active{ background:var(--surface-2); font-weight:500; }
+        .drawer-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
 
-  .theme-toggle-row{ display:flex; align-items:center; justify-content:space-between; padding:11px 12px; }
-  .theme-toggle-row span{ font-size:13.5px; display:flex; align-items:center; gap:10px; }
-  .theme-toggle-row svg{ width:18px; height:18px; color:var(--muted); }
-  .switch{ position:relative; width:40px; height:22px; }
-  .switch input{ opacity:0; width:0; height:0; }
-  .switch-track{
-    position:absolute; inset:0; background:var(--border); border-radius:20px; cursor:pointer; transition:background .2s;
-  }
-  .switch-track::before{
-    content:""; position:absolute; width:16px; height:16px; left:3px; top:3px;
-    background:#fff; border-radius:50%; transition:transform .2s;
-  }
-  .switch input:checked + .switch-track{ background:var(--accent1); }
-  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
+        .drawer-close {
+            background: none;
+            border: none;
+            color: #8b949e;
+            font-size: 20px;
+            cursor: pointer;
+        }
 
-  .history-panel{
-    position:fixed; top:0; right:0; width:min(320px, 80vw);
-    height:100vh;
-    background:var(--bg);
-    border-left:1px solid var(--border-soft);
-    z-index:40;
-    display:none;
-    flex-direction:column;
-    animation:slideInRight .3s ease;
-    box-shadow:var(--shadow-lg);
-    padding-top:env(safe-area-inset-top);
-  }
-  @keyframes slideInRight{ from{ transform:translateX(100%); } to{ transform:translateX(0); } }
-  .history-panel.show{ display:flex; }
-  .history-header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:16px;
-    border-bottom:1px solid var(--border-soft);
-  }
-  .history-header h3{ font-size:16px; font-weight:600; }
-  .history-header button{ background:none; border:none; cursor:pointer; color:var(--muted); display:flex; }
-  .history-content{
-    flex:1; overflow-y:auto; padding:8px;
-  }
-  .history-item{
-    padding:10px 12px;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:13px;
-    color:var(--text);
-    margin-bottom:4px;
-    transition:background .15s;
-    display:flex; align-items:center; justify-content:space-between;
-    gap:8px;
-    border:none;
-    background:none;
-    width:100%;
-    text-align:left;
-  }
-  .history-item:hover{ background:var(--surface-2); }
-  .history-item-text{
-    flex:1;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  .history-item-delete{
-    background:none; border:none; cursor:pointer;
-    color:var(--muted); display:none; padding:0;
-    width:20px; height:20px; flex-shrink:0;
-  }
-  .history-item:hover .history-item-delete{ display:flex; align-items:center; justify-content:center; }
-  .history-clear{
-    padding:12px 16px;
-    border-top:1px solid var(--border-soft);
-    background:var(--surface-2);
-    border:none;
-    color:var(--text);
-    cursor:pointer;
-    font-size:13px;
-    transition:background .15s;
-  }
-  .history-clear:hover{ background:var(--border-soft); }
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
 
-  .backdrop-overlay{
-    position:fixed; inset:0; z-index:35;
-    background:rgba(20,20,30,0.2);
-    display:none;
-  }
-  .backdrop-overlay.show{ display:block; }
+        .item-card {
+            background: #21262d;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
 
-  @media (max-width:480px){
-    .logo-text{ font-size:42px; }
-    .account-menu{ width:calc(100vw - 24px); right:12px; }
-    .results-topbar .logo-text{ display:none; }
-    .tab-bar{ padding:0 8px; }
-    .history-panel{ width:100%; }
-  }
+        .item-card .title {
+            color: #58a6ff;
+            font-weight: 600;
+            word-break: break-all;
+        }
 
-  @media (prefers-reduced-motion: reduce){
-    .bg-glow{ animation:none; }
-    .skel-line::after{ animation:none; }
-    * { animation:none !important; transition:none !important; }
-  }
-</style>
+        .item-card .time {
+            color: #8b949e;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 10px;
+            background: #da3633;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .clear-btn:hover {
+            background: #f85149;
+        }
+    </style>
 </head>
 <body>
 
-<canvas id="bg"></canvas>
-<div class="bg-glow"></div>
+    <!-- Animated Canvas -->
+    <canvas id="bg-canvas"></canvas>
 
-<!-- TOP BAR -->
-<div class="topbar" id="homeTopbar">
-  <div class="topbar-left">
-    <button class="icon-btn" id="menuBtnHome" aria-label="Menu" title="Menu">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-  </div>
-  <button class="icon-btn" id="historyBtnHome" aria-label="History" title="History">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
-  </button>
-  <button class="icon-btn" id="settingsBtnHome" aria-label="Settings" title="Settings">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
-  <button class="signin-btn" id="signinBtnHome">Sign up with Gmail</button>
-  <button class="avatar" id="avatarBtnHome" style="display:none;"></button>
-</div>
+    <div class="app-container">
+        <!-- Top Navigation Header -->
+        <header>
+            <div class="tabs-bar" id="tabs-bar">
+                <!-- Dynamic Tabs injected here -->
+                <button class="new-tab-btn" onclick="addNewTab()">+</button>
+            </div>
+            <div class="nav-bar">
+                <button class="nav-btn" onclick="navigateTab('back')">&#129144;</button>
+                <button class="nav-btn" onclick="navigateTab('forward')">&#129146;</button>
+                <button class="nav-btn" onclick="navigateTab('reload')">&#8635;</button>
+                
+                <div class="search-input-container">
+                    <input type="text" class="search-bar" id="address-bar" placeholder="Search Google or type a URL..." onkeypress="handleAddressBar(event)">
+                </div>
 
-<!-- TAB BAR -->
-<div class="tab-bar" id="tabBar" style="display:none;">
-  <div id="tabsContainer" style="display:flex; gap:4px; flex:1; overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none;"></div>
-  <button class="new-tab-btn" id="newTabBtn" aria-label="New tab" title="New tab">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  </button>
-</div>
+                <button class="nav-btn" title="History" onclick="toggleDrawer('history')">&#128338;</button>
+                <button class="nav-btn" title="Downloads" onclick="toggleDrawer('downloads')">&#128190;</button>
+            </div>
+        </header>
 
-<!-- HOME VIEW -->
-<main id="homeView">
-  <div class="logo-mark">
-    <img src="icon-120.png" alt="Sornet">
-    <span class="logo-text">Sornet</span>
-  </div>
-
-  <div class="search-shell">
-    <form id="homeForm">
-      <div class="search-pill" id="homePill">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="homeInput" autocomplete="off" placeholder="Search Sornet or type a question" aria-label="Search">
-        <button type="button" class="mic-btn" aria-label="Voice search" title="Voice search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
-      </div>
-      <div class="search-suggestions" id="homeSuggestions"></div>
-    </form>
-    <div class="home-actions">
-      <button class="action-btn ai" id="btnSornetSearch">Search</button>
+        <!-- Dynamic Content Area -->
+        <div class="content-area" id="content-area">
+            <!-- Dynamic Tab Views injected here -->
+        </div>
     </div>
-    <div class="engine-row" id="engineRowHome"></div>
-    <p class="home-sub">Sornet AI answers instantly, right here. Switch engines to pull full results from the web.</p>
-  </div>
-</main>
 
-<!-- RESULTS VIEW -->
-<div id="resultsView">
-  <div class="results-topbar">
-    <div class="logo-mark" id="logoBackBtn" title="Back to home">
-      <img src="icon-120.png" alt="Sornet">
-      <span class="logo-text">Sornet</span>
+    <!-- Right Sliding Drawer -->
+    <div class="drawer" id="side-drawer">
+        <div class="drawer-header">
+            <span class="drawer-title" id="drawer-title">History</span>
+            <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+        </div>
+        <div class="drawer-content" id="drawer-content">
+            <!-- History or Download items -->
+        </div>
+        <div style="padding: 16px;" id="drawer-footer">
+            <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+        </div>
     </div>
-    <form id="resultsForm" class="results-search">
-      <div class="search-pill" id="resultsPill">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="resultsInput" autocomplete="off" aria-label="Search">
-      </div>
-      <div class="search-suggestions" id="resultsSuggestions"></div>
-    </form>
-    <div class="results-top-right">
-      <button class="icon-btn" id="historyBtnResults" aria-label="History" title="History">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
-      </button>
-      <button class="icon-btn" id="settingsBtnResults" aria-label="Settings" title="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-      <button class="signin-btn" id="signinBtnResults">Sign up</button>
-      <button class="avatar" id="avatarBtnResults" style="display:none;"></button>
-    </div>
-  </div>
-  <div class="engine-strip" id="engineRowResults"></div>
 
-  <div class="results-body">
-    <p class="status-line" id="statusLine"></p>
-    <div id="resultsContent"></div>
-  </div>
-</div>
+    <script>
+        // Tab & Navigation State Management
+        let tabs = [];
+        let activeTabId = null;
+        let historyData = JSON.parse(localStorage.getItem('sornet_history') || '[]');
+        let downloadData = JSON.parse(localStorage.getItem('sornet_downloads') || '[]');
 
-<!-- HISTORY PANEL -->
-<div class="backdrop-overlay" id="backdropOverlay"></div>
-<div class="history-panel" id="historyPanel">
-  <div class="history-header">
-    <h3>History</h3>
-    <button id="closeHistoryBtn" aria-label="Close history">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
-  <div class="history-content" id="historyContent"></div>
-  <button class="history-clear" id="clearHistoryBtn">Clear all history</button>
-</div>
+        function initApp() {
+            addNewTab();
+            initCanvas();
+        }
 
-<!-- GMAIL SIGN-UP MODAL -->
-<div class="overlay" id="signinOverlay">
-  <div class="modal">
-    <h2>Continue with Gmail</h2>
-    <p class="sub">Sign up to sync your Sornet preferences on this device.</p>
-    <label class="field-label" for="gmailInput">Gmail address</label>
-    <div class="gmail-input-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
-      <input type="email" id="gmailInput" placeholder="yourname@gmail.com" autocomplete="email">
-    </div>
-    <p class="field-error" id="gmailError"></p>
-    <div class="modal-actions">
-      <button class="btn-text" id="cancelSignin">Cancel</button>
-      <button class="btn-solid" id="confirmSignin">Continue</button>
-    </div>
-  </div>
-</div>
+        function createUniqueId() {
+            return 'tab_' + Math.random().toString(36).substr(2, 9);
+        }
 
-<!-- ACCOUNT MENU -->
-<div class="account-menu" id="accountMenu">
-  <div class="am-header" id="amHeader">
-    <div class="avatar" id="amAvatar" style="pointer-events:none;"></div>
-    <div class="email" id="amEmail">Not signed in</div>
-  </div>
-  <div class="am-section" id="amAccountsSection"></div>
-  <div class="am-section">
-    <div class="theme-toggle-row">
-      <span>
-        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        Dark mode
-      </span>
-      <label class="switch">
-        <input type="checkbox" id="themeSwitch">
-        <span class="switch-track"></span>
-      </label>
-    </div>
-  </div>
-  <div class="am-section" id="amSignoutSection" style="display:none;">
-    <button class="am-row" id="signOutBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Sign out
-    </button>
-  </div>
-</div>
+        function addNewTab(url = '') {
+            const id = createUniqueId();
+            const tabObj = { id, title: 'New Tab', url: url };
+            tabs.push(tabObj);
 
-<script>
-const root = document.documentElement;
-const themeSwitch = document.getElementById('themeSwitch');
+            // Create Tab Element
+            const tabsBar = document.getElementById('tabs-bar');
+            const newBtn = tabsBar.querySelector('.new-tab-btn');
+            
+            const tabEl = document.createElement('div');
+            tabEl.className = 'tab';
+            tabEl.id = `tab-btn-${id}`;
+            tabEl.onclick = () => switchTab(id);
+            tabEl.innerHTML = `
+                <span class="tab-title" id="tab-title-${id}">New Tab</span>
+                <span class="tab-close" onclick="closeTab(event, '${id}')">&times;</span>
+            `;
+            tabsBar.insertBefore(tabEl, newBtn);
 
-function applyTheme(mode){
-  root.setAttribute('data-theme', mode);
-  themeSwitch.checked = mode === 'dark';
-  localStorage.setItem('sornet_theme', mode);
-}
-(function initTheme(){
-  const saved = localStorage.getItem('sornet_theme');
-  if(saved){ applyTheme(saved); }
-  else{
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    applyTheme(prefersDark ? 'dark' : 'light');
-  }
-})();
-themeSwitch.addEventListener('change', () => applyTheme(themeSwitch.checked ? 'dark' : 'light'));
+            // Create View Element
+            const contentArea = document.getElementById('content-area');
+            const viewEl = document.createElement('div');
+            viewEl.className = 'tab-view';
+            viewEl.id = `tab-view-${id}`;
 
-function getHistory(){ return JSON.parse(localStorage.getItem('sornet_history') || '[]'); }
-function saveHistory(list){ localStorage.setItem('sornet_history', JSON.stringify(list)); }
-function addToHistory(query){
-  if(!query.trim()) return;
-  let history = getHistory();
-  history = history.filter(h => h !== query);
-  history.unshift(query);
-  if(history.length > 50) history = history.slice(0, 50);
-  saveHistory(history);
-  renderHistory();
-}
-function clearHistory(){ localStorage.removeItem('sornet_history'); renderHistory(); }
-function renderHistory(){
-  const history = getHistory();
-  const content = document.getElementById('historyContent');
-  content.innerHTML = '';
-  if(history.length === 0){
-    content.innerHTML = '<p style="text-align:center; color:var(--muted); padding:40px 20px; font-size:13px;">No history yet</p>';
-    return;
-  }
-  history.forEach(query => {
-    const item = document.createElement('button');
-    item.className = 'history-item';
-    item.innerHTML = `
-      <span class="history-item-text">${escapeHtml(query)}</span>
-      <button class="history-item-delete" type="button" aria-label="Delete">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-      </button>
-    `;
-    item.addEventListener('click', () => { document.getElementById('homeInput').value = query; showResults(query); closeHistoryPanel(); });
-    const deleteBtn = item.querySelector('.history-item-delete');
-    deleteBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      let h = getHistory();
-      h = h.filter(q => q !== query);
-      saveHistory(h);
-      renderHistory();
-    });
-    content.appendChild(item);
-  });
-}
+            if (!url) {
+                viewEl.innerHTML = `
+                    <div class="home-container">
+                        <div class="logo">SORNET</div>
+                        <div class="main-search-box">
+                            <input type="text" placeholder="Search Google or enter a website address..." onkeypress="handleHomeSearch(event, '${id}')">
+                            <button class="main-search-btn" onclick="executeHomeSearch('${id}')">Search</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                renderIframe(viewEl, url, id);
+            }
 
-function openHistoryPanel(){ document.getElementById('historyPanel').classList.add('show'); document.getElementById('backdropOverlay').classList.add('show'); }
-function closeHistoryPanel(){ document.getElementById('historyPanel').classList.remove('show'); document.getElementById('backdropOverlay').classList.remove('show'); }
-document.getElementById('historyBtnHome').addEventListener('click', openHistoryPanel);
-document.getElementById('historyBtnResults').addEventListener('click', openHistoryPanel);
-document.getElementById('closeHistoryBtn').addEventListener('click', closeHistoryPanel);
-document.getElementById('clearHistoryBtn').addEventListener('click', () => { if(confirm('Clear all search history?')) clearHistory(); });
-document.getElementById('backdropOverlay').addEventListener('click', closeHistoryPanel);
+            contentArea.appendChild(viewEl);
+            switchTab(id);
+        }
 
-function getAccounts(){ return JSON.parse(localStorage.getItem('sornet_accounts') || '[]'); }
-function saveAccounts(list){ localStorage.setItem('sornet_accounts', JSON.stringify(list)); }
-function getCurrentEmail(){ return localStorage.getItem('sornet_current'); }
-function setCurrentEmail(email){ localStorage.setItem('sornet_current', email); renderAccountUI(); }
-function signOutCurrent(){ localStorage.removeItem('sornet_current'); renderAccountUI(); }
+        function switchTab(id) {
+            activeTabId = id;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
 
-function initials(email){ return email.trim().charAt(0).toUpperCase(); }
+            const tabBtn = document.getElementById(`tab-btn-${id}`);
+            const tabView = document.getElementById(`tab-view-${id}`);
+            
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabView) tabView.classList.add('active');
 
-function renderAccountUI(){
-  const email = getCurrentEmail();
-  const signedIn = !!email;
+            const currentTab = tabs.find(t => t.id === id);
+            document.getElementById('address-bar').value = currentTab ? currentTab.url : '';
+        }
 
-  [ ['signinBtnHome','avatarBtnHome'], ['signinBtnResults','avatarBtnResults'] ].forEach(([signId,avId]) => {
-    const signBtn = document.getElementById(signId);
-    const avBtn = document.getElementById(avId);
-    if(signedIn){
-      signBtn.style.display = 'none';
-      avBtn.style.display = 'flex';
-      avBtn.textContent = initials(email);
-    } else {
-      signBtn.style.display = 'inline-block';
-      avBtn.style.display = 'none';
-    }
-  });
+        function closeTab(e, id) {
+            e.stopPropagation();
+            if (tabs.length === 1) {
+                addNewTab();
+            }
 
-  document.getElementById('amAvatar').textContent = signedIn ? initials(email) : '?';
-  document.getElementById('amEmail').textContent = signedIn ? email : 'Not signed in';
-  document.getElementById('amSignoutSection').style.display = signedIn ? 'block' : 'none';
+            const tabBtn = document.getElementById(`tab-btn-${id}`);
+            const tabView = document.getElementById(`tab-view-${id}`);
+            if (tabBtn) tabBtn.remove();
+            if (tabView) tabView.remove();
 
-  const accSection = document.getElementById('amAccountsSection');
-  accSection.innerHTML = '';
-  const accounts = getAccounts();
+            tabs = tabs.filter(t => t.id !== id);
 
-  accounts.forEach(acc => {
-    const row = document.createElement('button');
-    row.className = 'am-row' + (acc === email ? ' active' : '');
-    row.innerHTML = `<span class="mini-avatar">${initials(acc)}</span><span>${acc}</span>`;
-    row.addEventListener('click', () => { setCurrentEmail(acc); closeAccountMenu(); });
-    accSection.appendChild(row);
-  });
+            if (activeTabId === id) {
+                switchTab(tabs[tabs.length - 1].id);
+            }
+        }
 
-  const addRow = document.createElement('button');
-  addRow.className = 'am-row';
-  addRow.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>${accounts.length ? 'Add another Gmail account' : 'Sign up with Gmail'}</span>`;
-  addRow.addEventListener('click', () => { closeAccountMenu(); openSignin(); });
-  accSection.appendChild(addRow);
-}
-renderAccountUI();
+        function handleAddressBar(e) {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query && activeTabId) {
+                    navigateActiveTab(query);
+                }
+            }
+        }
 
-const signinOverlay = document.getElementById('signinOverlay');
-const gmailInput = document.getElementById('gmailInput');
-const gmailError = document.getElementById('gmailError');
+        function handleHomeSearch(e, tabId) {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) navigateTabWithQuery(tabId, query);
+            }
+        }
 
-function openSignin(){
-  signinOverlay.classList.add('show');
-  gmailInput.value = '';
-  gmailError.textContent = '';
-  setTimeout(() => gmailInput.focus(), 50);
-}
-function closeSignin(){ signinOverlay.classList.remove('show'); }
+        function executeHomeSearch(tabId) {
+            const viewEl = document.getElementById(`tab-view-${tabId}`);
+            const query = viewEl.querySelector('input').value.trim();
+            if (query) navigateTabWithQuery(tabId, query);
+        }
 
-document.getElementById('signinBtnHome').addEventListener('click', openSignin);
-document.getElementById('signinBtnResults').addEventListener('click', openSignin);
-document.getElementById('cancelSignin').addEventListener('click', closeSignin);
-signinOverlay.addEventListener('click', e => { if(e.target === signinOverlay) closeSignin(); });
+        function navigateTabWithQuery(tabId, query) {
+            let targetUrl = query;
+            if (!query.startsWith('http://') && !query.startsWith('https://')) {
+                if (query.includes('.') && !query.includes(' ')) {
+                    targetUrl = 'https://' + query;
+                } else {
+                    targetUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&igu=1`;
+                }
+            }
 
-document.getElementById('confirmSignin').addEventListener('click', () => {
-  const val = gmailInput.value.trim().toLowerCase();
-  if(!/^[^\s@]+@gmail\.com$/.test(val)){
-    gmailError.textContent = 'Enter a valid @gmail.com address.';
-    return;
-  }
-  const accounts = getAccounts();
-  if(!accounts.includes(val)){ accounts.push(val); saveAccounts(accounts); }
-  setCurrentEmail(val);
-  closeSignin();
-});
-gmailInput.addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('confirmSignin').click(); });
+            const tab = tabs.find(t => t.id === tabId);
+            if (tab) tab.url = targetUrl;
 
-const accountMenu = document.getElementById('accountMenu');
-function toggleAccountMenu(){ accountMenu.classList.toggle('show'); }
-function closeAccountMenu(){ accountMenu.classList.remove('show'); }
+            saveHistory(query, targetUrl);
 
-['avatarBtnHome','avatarBtnResults','settingsBtnHome','settingsBtnResults'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => { e.stopPropagation(); toggleAccountMenu(); });
-});
-document.addEventListener('click', e => {
-  if(!accountMenu.contains(e.target)) closeAccountMenu();
-});
-document.getElementById('signOutBtn').addEventListener('click', () => { signOutCurrent(); closeAccountMenu(); });
+            const viewEl = document.getElementById(`tab-view-${tabId}`);
+            viewEl.innerHTML = '';
+            renderIframe(viewEl, targetUrl, tabId);
 
-let tabs = [{id:Date.now(), query:'', results:null}];
-let activeTabId = tabs[0].id;
-function getActiveTab(){ return tabs.find(t => t.id === activeTabId) || tabs[0]; }
-function renderTabs(){
-  const container = document.getElementById('tabsContainer');
-  container.innerHTML = '';
-  tabs.forEach(tab => {
-    const tabEl = document.createElement('div');
-    tabEl.className = 'tab-item' + (tab.id === activeTabId ? ' active' : '');
-    const label = tab.query ? tab.query.substring(0, 30) : 'New Tab';
-    tabEl.innerHTML = `
-      <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(label)}</span>
-      <button type="button" class="close-tab" aria-label="Close tab">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    `;
-    tabEl.addEventListener('click', () => switchTab(tab.id));
-    tabEl.querySelector('.close-tab').addEventListener('click', e => { e.stopPropagation(); closeTab(tab.id); });
-    container.appendChild(tabEl);
-  });
-}
-function switchTab(tabId){
-  activeTabId = tabId;
-  const tab = getActiveTab();
-  if(tab.query) showResults(tab.query);
-  else showHome();
-  renderTabs();
-}
-function closeTab(tabId){
-  tabs = tabs.filter(t => t.id !== tabId);
-  if(tabs.length === 0) tabs = [{id:Date.now(), query:'', results:null}];
-  if(activeTabId === tabId) activeTabId = tabs[0].id;
-  if(tabs.length === 1) document.getElementById('tabBar').style.display = 'none';
-  renderTabs();
-  switchTab(activeTabId);
-}
-function newTab(){
-  const newTabObj = {id:Date.now(), query:'', results:null};
-  tabs.push(newTabObj);
-  activeTabId = newTabObj.id;
-  if(tabs.length > 1) document.getElementById('tabBar').style.display = 'flex';
-  renderTabs();
-  showHome();
-}
-document.getElementById('newTabBtn').addEventListener('click', newTab);
+            if (activeTabId === tabId) {
+                document.getElementById('address-bar').value = targetUrl;
+            }
+        }
 
-const homeView = document.getElementById('homeView');
-const homeTopbar = document.getElementById('homeTopbar');
-const resultsView = document.getElementById('resultsView');
-const homeInput = document.getElementById('homeInput');
-const resultsInput = document.getElementById('resultsInput');
+        function navigateActiveTab(query) {
+            navigateTabWithQuery(activeTabId, query);
+        }
 
-function showHome(){
-  resultsView.style.display = 'none';
-  homeView.style.display = 'flex';
-  homeTopbar.style.display = 'flex';
-  homeInput.value = '';
-  homeInput.focus();
-  renderHistory();
-}
-function showResults(query){
-  const tab = getActiveTab();
-  tab.query = query;
-  homeView.style.display = 'none';
-  homeTopbar.style.display = 'none';
-  resultsView.style.display = 'flex';
-  resultsInput.value = query;
-  renderTabs();
-  dispatchSearch(query);
-  addToHistory(query);
-}
+        function renderIframe(container, url, id) {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            container.appendChild(iframe);
 
-document.getElementById('logoBackBtn').addEventListener('click', showHome);
+            const titleEl = document.getElementById(`tab-title-${id}`);
+            try {
+                const parsedUrl = new URL(url);
+                if (titleEl) titleEl.innerText = parsedUrl.hostname;
+            } catch {
+                if (titleEl) titleEl.innerText = url;
+            }
+        }
 
-document.getElementById('homeForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const q = homeInput.value.trim();
-  if(q) showResults(q);
-});
-document.getElementById('btnSornetSearch').addEventListener('click', () => {
-  const q = homeInput.value.trim();
-  if(q) showResults(q);
-});
-document.getElementById('resultsForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const q = resultsInput.value.trim();
-  if(q) dispatchSearch(q);
-});
+        function navigateTab(action) {
+            const activeView = document.getElementById(`tab-view-${activeTabId}`);
+            if (!activeView) return;
+            const iframe = activeView.querySelector('iframe');
+            if (iframe) {
+                if (action === 'reload') iframe.src = iframe.src;
+                if (action === 'back') history.back();
+                if (action === 'forward') history.forward();
+            }
+        }
 
-document.getElementById('homePill').addEventListener('focusin', function(){ this.classList.add('focused'); });
-document.getElementById('homePill').addEventListener('focusout', function(){ this.classList.remove('focused'); });
-document.getElementById('resultsPill').addEventListener('focusin', function(){ this.classList.add('focused'); });
-document.getElementById('resultsPill').addEventListener('focusout', function(){ this.classList.remove('focused'); });
+        /* History & Download Management */
+        function saveHistory(query, url) {
+            const item = { query, url, timestamp: new Date().toLocaleString() };
+            historyData.unshift(item);
+            localStorage.setItem('sornet_history', JSON.stringify(historyData));
+        }
 
-function showSuggestions(inputValue, suggestionsEl, inputEl){
-  const history = getHistory().filter(h => h.toLowerCase().includes(inputValue.toLowerCase())).slice(0, 5);
-  suggestionsEl.innerHTML = '';
-  if(history.length === 0){ suggestionsEl.classList.remove('show'); return; }
-  history.forEach(query => {
-    const item = document.createElement('div');
-    item.className = 'suggestion-item';
-    item.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>${escapeHtml(query)}</span>`;
-    item.addEventListener('click', () => { inputEl.value = query; inputEl.form.dispatchEvent(new Event('submit')); });
-    suggestionsEl.appendChild(item);
-  });
-  suggestionsEl.classList.add('show');
-}
-homeInput.addEventListener('input', e => showSuggestions(e.target.value, document.getElementById('homeSuggestions'), homeInput));
-resultsInput.addEventListener('input', e => showSuggestions(e.target.value, document.getElementById('resultsSuggestions'), resultsInput));
-document.addEventListener('click', e => {
-  if(!e.target.closest('.search-pill')) {
-    document.getElementById('homeSuggestions').classList.remove('show');
-    document.getElementById('resultsSuggestions').classList.remove('show');
-  }
-});
+        function toggleDrawer(type) {
+            const drawer = document.getElementById('side-drawer');
+            const title = document.getElementById('drawer-title');
+            const content = document.getElementById('drawer-content');
+            const footer = document.getElementById('drawer-footer');
 
-const ENGINES = [
-  { id:'sornet',     label:'Sornet AI',   badge:'S', cls:'eng-sornet',     inline:true },
-  { id:'google',     label:'Google',      badge:'G', cls:'eng-google',     urlFn:q => `https://www.google.com/search?q=${q}` },
-  { id:'bing',       label:'Bing',        badge:'B', cls:'eng-bing',       urlFn:q => `https://www.bing.com/search?q=${q}` },
-  { id:'duckduckgo', label:'DuckDuckGo',  badge:'D', cls:'eng-duckduckgo', urlFn:q => `https://duckduckgo.com/?q=${q}` },
-  { id:'yahoo',      label:'Yahoo',       badge:'Y', cls:'eng-yahoo',      urlFn:q => `https://search.yahoo.com/search?p=${q}` }
-];
-let activeEngine = localStorage.getItem('sornet_engine') || 'sornet';
+            if (type === 'history') {
+                title.innerText = 'Search History';
+                footer.style.display = 'block';
+                renderHistoryItems(content);
+            } else {
+                title.innerText = 'Downloads';
+                footer.style.display = 'none';
+                renderDownloadItems(content);
+            }
 
-function setActiveEngine(id){
-  activeEngine = id;
-  localStorage.setItem('sornet_engine', id);
-  renderEngineChips();
-}
+            drawer.classList.add('open');
+        }
 
-function renderEngineChips(){
-  ['engineRowHome','engineRowResults'].forEach(rowId => {
-    const row = document.getElementById(rowId);
-    row.innerHTML = '';
-    ENGINES.forEach(eng => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'engine-chip' + (eng.id === activeEngine ? ' active' : '');
-      chip.innerHTML = `<span class="eng-badge ${eng.cls}">${eng.badge}</span>${eng.label}`;
-      chip.addEventListener('click', () => {
-        setActiveEngine(eng.id);
-        const q = (rowId === 'engineRowHome' ? homeInput.value : resultsInput.value).trim();
-        if(rowId === 'engineRowResults' && q) dispatchSearch(q);
-      });
-      row.appendChild(chip);
-    });
-  });
-}
-renderEngineChips();
+        function closeDrawer() {
+            document.getElementById('side-drawer').classList.remove('open');
+        }
 
-function dispatchSearch(query){
-  const eng = ENGINES.find(e => e.id === activeEngine) || ENGINES[0];
-  if(eng.inline){
-    runSearch(query);
-  } else {
-    showRedirectCard(eng, query);
-    window.open(eng.urlFn(encodeURIComponent(query)), '_blank', 'noopener');
-  }
-}
+        function renderHistoryItems(container) {
+            if (historyData.length === 0) {
+                container.innerHTML = '<div style="color: #8b949e; text-align: center;">No search history found.</div>';
+                return;
+            }
+            container.innerHTML = historyData.map(item => `
+                <div class="item-card">
+                    <div class="title">${item.query}</div>
+                    <div class="time">${item.timestamp}</div>
+                </div>
+            `).join('');
+        }
 
-function showRedirectCard(eng, query){
-  const statusLine = document.getElementById('statusLine');
-  const resultsContent = document.getElementById('resultsContent');
-  statusLine.innerHTML = `Results for <b>${escapeHtml(query)}</b>`;
-  resultsContent.innerHTML = `
-    <div class="redirect-card">
-      <div class="eng-badge ${eng.cls}">${eng.badge}</div>
-      <h3>Opened ${eng.label} in a new tab</h3>
-      <p>${eng.label} doesn't allow its results to be shown inside other sites, so Sornet opened it separately for you. Switch back to <b>Sornet AI</b> anytime to see instant answers right here.</p>
-      <a class="btn-solid" href="${eng.urlFn(encodeURIComponent(query))}" target="_blank" rel="noopener">Reopen ${eng.label}</a>
-    </div>`;
-}
+        function renderDownloadItems(container) {
+            if (downloadData.length === 0) {
+                container.innerHTML = '<div style="color: #8b949e; text-align: center;">No downloads found.</div>';
+                return;
+            }
+            container.innerHTML = downloadData.map(item => `
+                <div class="item-card">
+                    <div class="title">${item.fileName}</div>
+                    <div class="time">${item.timestamp}</div>
+                </div>
+            `).join('');
+        }
 
-const statusLine = document.getElementById('statusLine');
-const resultsContent = document.getElementById('resultsContent');
-let searchToken = 0;
+        function clearHistory() {
+            historyData = [];
+            localStorage.removeItem('sornet_history');
+            renderHistoryItems(document.getElementById('drawer-content'));
+        }
 
-function jsonp(url){
-  return new Promise((resolve, reject) => {
-    const cbName = 'sornet_cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
-    const script = document.createElement('script');
-    window[cbName] = data => { resolve(data); cleanup(); };
-    script.onerror = () => { reject(new Error('network')); cleanup(); };
-    function cleanup(){ delete window[cbName]; script.remove(); }
-    script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
-    document.body.appendChild(script);
-  });
-}
+        /* Custom Animated Background Canvas */
+        function initCanvas() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
 
-function domainOf(url){
-  try{ return new URL(url).hostname.replace('www.',''); }catch(e){ return url; }
-}
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
 
-function flattenTopics(topics){
-  const out = [];
-  (topics || []).forEach(t => {
-    if(t.Topics){ out.push(...flattenTopics(t.Topics)); }
-    else if(t.Text && t.FirstURL){ out.push(t); }
-  });
-  return out;
-}
+            const particles = Array.from({ length: 45 }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 2 + 1,
+                dx: (Math.random() - 0.5) * 0.6,
+                dy: (Math.random() - 0.5) * 0.6,
+                alpha: Math.random() * 0.5 + 0.2
+            }));
 
-async function runSearch(query){
-  const myToken = ++searchToken;
-  statusLine.textContent = `Results for "${query}"`;
-  resultsContent.innerHTML = `
-    <div class="skeleton">
-      <div class="skel-line" style="width:60%;height:20px;"></div>
-      <div class="skel-line" style="width:95%;"></div>
-      <div class="skel-line" style="width:85%;"></div>
-      <div class="skel-line" style="width:40%;height:16px;margin-top:10px;"></div>
-      <div class="skel-line" style="width:90%;"></div>
-    </div>`;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+                particles.forEach(p => {
+                    p.x += p.dx;
+                    p.y += p.dy;
 
-  let data = null;
-  try{
-    data = await jsonp(url);
-  }catch(err){
-    data = null;
-  }
-  if(myToken !== searchToken) return;
+                    if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
 
-  renderResults(query, data);
-}
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(88, 166, 255, ${p.alpha})`;
+                    ctx.fill();
+                });
 
-function renderResults(query, data){
-  resultsContent.innerHTML = '';
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
 
-  const hasAbstract = data && data.AbstractText;
-  const related = data ? flattenTopics(data.RelatedTopics).slice(0, 8) : [];
-
-  if(!hasAbstract && related.length === 0){
-    statusLine.textContent = `No instant results for "${query}"`;
-    resultsContent.innerHTML = `
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <h3>No instant results found</h3>
-        <p>Sornet's live AI answers don't have anything on this yet. Try rephrasing your search or asking about a specific topic, person, or place.</p>
-      </div>`;
-    return;
-  }
-
-  statusLine.innerHTML = `Results for <b>${escapeHtml(query)}</b>`;
-
-  if(hasAbstract){
-    const card = document.createElement('div');
-    card.className = 'ai-card';
-    card.innerHTML = `
-      <span class="ai-badge">AI Answer</span>
-      <h2>${escapeHtml(data.Heading || query)}</h2>
-      <p>${escapeHtml(data.AbstractText)}</p>
-      ${data.AbstractURL ? `<span class="ai-source">Source: <a href="${data.AbstractURL}" target="_blank" rel="noopener">${domainOf(data.AbstractURL)}</a></span>` : ''}
-    `;
-    resultsContent.appendChild(card);
-  }
-
-  related.forEach(item => {
-    const title = item.Text.includes(' - ') ? item.Text.split(' - ')[0] : item.Text;
-    const desc = item.Text;
-    const domain = domainOf(item.FirstURL);
-    const row = document.createElement('div');
-    row.className = 'result-item';
-    row.innerHTML = `
-      <div class="result-url">
-        <span class="favicon">${domain.charAt(0).toUpperCase()}</span>
-        <span>${domain}</span>
-      </div>
-      <a class="result-title" href="${item.FirstURL}" target="_blank" rel="noopener">${escapeHtml(title)}</a>
-      <div class="result-desc">${escapeHtml(desc)}</div>
-    `;
-    resultsContent.appendChild(row);
-  });
-
-  const footer = document.createElement('div');
-  footer.className = 'powered-by';
-  footer.textContent = 'AI answers and related results powered by DuckDuckGo';
-  resultsContent.appendChild(footer);
-}
-
-function escapeHtml(str){
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d');
-let stars = [], w, h;
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function resize(){
-  w = canvas.width = window.innerWidth;
-  h = canvas.height = window.innerHeight;
-  const count = Math.floor((w * h) / 22000);
-  stars = Array.from({length: count}, () => ({
-    x: Math.random() * w, y: Math.random() * h,
-    r: Math.random() * 1.1 + 0.2,
-    baseAlpha: Math.random() * 0.25 + 0.05,
-    speed: Math.random() * 0.015 + 0.004,
-    phase: Math.random() * Math.PI * 2
-  }));
-}
-function draw(){
-  ctx.clearRect(0,0,w,h);
-  const isDark = root.getAttribute('data-theme') === 'dark';
-  for(const s of stars){
-    s.phase += s.speed;
-    const alpha = Math.max(0, s.baseAlpha + Math.sin(s.phase) * 0.12);
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-    ctx.fillStyle = isDark ? `rgba(230,225,255,${alpha})` : `rgba(107,78,255,${alpha*0.5})`;
-    ctx.fill();
-  }
-  if(!reduceMotion) requestAnimationFrame(draw);
-}
-resize();
-window.addEventListener('resize', resize);
-draw();
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
-
-homeInput.focus();
-</script>
+        window.onload = initApp;
+    </script>
 </body>
 </html>
