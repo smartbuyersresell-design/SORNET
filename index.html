@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<title>Sornet Search</title>
+<meta name="description" content="Sornet — fast, clean, AI-powered search that stays right where you are.">
+
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0b12" media="(prefers-color-scheme: dark)">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sornet">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#f5f6fa;
+    --bg-secondary:#ffffff;
+    --surface:#ffffff;
+    --surface-2:#f9fafb;
+    --surface-alt:#f0f1f6;
+    --surface-hover:#eff0f6;
+    --text:#1a1a2e;
+    --text-secondary:#6b7280;
+    --text-tertiary:#9ca3af;
+    --muted:#d1d5db;
+    --border:#e5e7eb;
+    --link:#5b3df0;
+    --link-hover:#4c2dd0;
+    --accent1:#5b3df0;
+    --accent2:#ec4899;
+    --accent3:#06b6d4;
+    --shadow-sm:0 1px 2px rgba(0,0,0,0.05);
+    --shadow:0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md:0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg:0 10px 25px rgba(0,0,0,0.1);
+    --shadow-xl:0 20px 40px rgba(0,0,0,0.12);
+    --radius:8px;
+    --radius-lg:12px;
+    --radius-xl:16px;
+    --transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  html[data-theme="dark"]{
+    --bg:#0f0f17;
+    --bg-secondary:#1a1a2e;
+    --surface:#1a1a2e;
+    --surface-2:#242435;
+    --surface-alt:#2a2a3e;
+    --surface-hover:#32324a;
+    --text:#e8e8f0;
+    --text-secondary:#b4b8c3;
+    --text-tertiary:#8b92a8;
+    --muted:#4b5563;
+    --border:#3a3a4f;
+    --link:#9ea8ff;
+    --link-hover:#b8c4ff;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter','Segoe UI',Roboto,sans-serif;
+    min-height:100dvh;
+    overflow-x:hidden;
+    transition:background 0.3s ease,color 0.3s ease;
+    position:relative;
+  }
+
+  .gradient-bg{
+    position:fixed;inset:0;width:100%;height:100%;
+    z-index:0;pointer-events:none;opacity:0.4;
+    background:radial-gradient(circle at 20% 50%,rgba(91,61,240,0.15) 0%,transparent 50%),
+               radial-gradient(circle at 80% 80%,rgba(236,72,153,0.1) 0%,transparent 50%);
+  }
+  
+  html[data-theme="dark"] .gradient-bg{opacity:0.2;}
+
+  .container{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh;}
+
+  .navbar{
+    position:relative;z-index:10;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;
+    padding:12px 16px;
+    padding-top:calc(12px + env(safe-area-inset-top));
+    border-bottom:1px solid var(--border);
+    background:rgba(255,255,255,0.7);
+    backdrop-filter:blur(12px);
+  }
+  
+  html[data-theme="dark"] .navbar{background:rgba(26,26,46,0.7);}
+
+  .navbar-left{display:flex;align-items:center;gap:12px;}
+
+  .navbar-brand{
+    display:flex;align-items:center;gap:8px;
+    text-decoration:none;
+    font-weight:700;
+    font-size:20px;
+    color:var(--text);
+    transition:var(--transition);
+  }
+
+  .navbar-brand:hover{transform:scale(1.02);}
+
+  .navbar-brand img{
+    width:28px;height:28px;
+    border-radius:6px;
+    display:block;
+  }
+
+  .navbar-brand-text{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+
+  .search-bar-main{
+    flex:1;max-width:500px;
+    display:flex;align-items:center;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:8px 14px;
+    transition:var(--transition);
+  }
+
+  .search-bar-main:hover,.search-bar-main:focus-within{
+    border-color:var(--accent1);
+    box-shadow:var(--shadow-md);
+  }
+
+  .search-bar-main svg{
+    width:18px;height:18px;
+    color:var(--text-secondary);
+    flex-shrink:0;
+    margin-right:8px;
+  }
+
+  .search-bar-main input{
+    flex:1;
+    border:none;
+    background:transparent;
+    outline:none;
+    color:var(--text);
+    font-size:14px;
+    font-weight:500;
+  }
+
+  .search-bar-main input::placeholder{color:var(--text-tertiary);}
+
+  .navbar-right{display:flex;align-items:center;gap:8px;}
+
+  .nav-btn{
+    width:40px;height:40px;
+    border-radius:var(--radius-lg);
+    display:flex;align-items:center;justify-content:center;
+    background:transparent;
+    border:1.5px solid transparent;
+    cursor:pointer;
+    color:var(--text-secondary);
+    transition:var(--transition);
+  }
+
+  .nav-btn:hover{
+    background:var(--surface-hover);
+    border-color:var(--border);
+    color:var(--text);
+  }
+
+  .nav-btn svg{width:20px;height:20px;}
+
+  .nav-btn.primary{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;
+    border:none;
+  }
+
+  .nav-btn.primary:hover{filter:brightness(1.1);box-shadow:var(--shadow-lg);}
+
+  .tabs-bar{
+    display:flex;align-items:center;gap:0;
+    padding:0 16px;
+    border-bottom:1px solid var(--border);
+    background:var(--bg-secondary);
+    overflow-x:auto;
+    -ms-overflow-style:none;
+    scrollbar-width:none;
+    height:44px;
+  }
+
+  .tabs-bar::-webkit-scrollbar{display:none;}
+
+  .tab{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px;
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    color:var(--text-secondary);
+    font-size:13px;
+    font-weight:500;
+    white-space:nowrap;
+    flex-shrink:0;
+    transition:var(--transition);
+    border-bottom:2px solid transparent;
+  }
+
+  .tab:hover{color:var(--text);background:var(--surface-alt);}
+
+  .tab.active{color:var(--accent1);border-bottom-color:var(--accent1);}
+
+  .tab-close{
+    width:18px;height:18px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:4px;
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    color:inherit;
+    opacity:0.5;
+    transition:var(--transition);
+  }
+
+  .tab:hover .tab-close{opacity:1;background:rgba(0,0,0,0.1);}
+
+  .new-tab-btn{
+    width:36px;height:36px;
+    border-radius:6px;
+    background:transparent;
+    border:none;
+    cursor:pointer;
+    color:var(--text-secondary);
+    display:flex;align-items:center;justify-content:center;
+    transition:var(--transition);
+    flex-shrink:0;
+    margin:0 8px;
+  }
+
+  .new-tab-btn:hover{background:var(--surface-alt);color:var(--accent1);}
+
+  .content-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+  #homeView{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+    animation:fadeInUp 0.5s ease-out;
+    overflow-y:auto;
+  }
+
+  .home-logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:40px;
+  }
+
+  .home-logo img{
+    width:56px;height:56px;
+    border-radius:12px;
+    box-shadow:var(--shadow-lg);
+  }
+
+  .home-logo h1{
+    font-size:48px;
+    font-weight:800;
+    letter-spacing:-1px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+
+  .search-shell{width:min(580px,95vw);}
+
+  .search-hero{
+    display:flex;
+    align-items:center;
+    background:var(--surface);
+    border:2px solid var(--border);
+    border-radius:var(--radius-xl);
+    padding:0 20px;
+    height:60px;
+    box-shadow:var(--shadow-md);
+    transition:var(--transition);
+  }
+
+  .search-hero:hover,.search-hero.focused{box-shadow:var(--shadow-lg);border-color:var(--accent1);}
+
+  .search-hero svg{
+    width:22px;height:22px;
+    color:var(--accent1);
+    flex-shrink:0;
+    margin-right:12px;
+  }
+
+  .search-hero input{
+    flex:1;
+    border:none;
+    background:transparent;
+    outline:none;
+    color:var(--text);
+    font-size:16px;
+    font-weight:500;
+  }
+
+  .search-hero input::placeholder{color:var(--text-tertiary);}
+
+  .home-actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    margin-top:24px;
+    flex-wrap:wrap;
+  }
+
+  .action-btn{
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    color:var(--text);
+    font-size:14px;
+    font-weight:600;
+    padding:10px 20px;
+    border-radius:var(--radius-lg);
+    cursor:pointer;
+    transition:var(--transition);
+  }
+
+  .action-btn:hover{border-color:var(--accent1);background:var(--surface-alt);transform:translateY(-2px);}
+
+  .action-btn.primary{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;
+    border:none;
+    box-shadow:var(--shadow-md);
+  }
+
+  .action-btn.primary:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px);}
+
+  .engine-selector{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:28px;
+  }
+
+  .engine-btn{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    color:var(--text-secondary);
+    font-size:13px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:var(--transition);
+  }
+
+  .engine-btn:hover{border-color:var(--accent1);color:var(--text);transform:translateY(-2px);}
+
+  .engine-btn.active{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    border:none;
+    color:#fff;
+    box-shadow:var(--shadow-lg);
+  }
+
+  .home-subtitle{
+    text-align:center;
+    margin-top:28px;
+    font-size:13px;
+    color:var(--text-secondary);
+    max-width:500px;
+    line-height:1.6;
+  }
+
+  #resultsView{display:none;flex:1;flex-direction:column;overflow:hidden;}
+  #resultsView.show{display:flex;}
+
+  .results-topbar{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px 16px;
+    border-bottom:1px solid var(--border);
+    background:rgba(255,255,255,0.7);
+    backdrop-filter:blur(12px);
+    flex-shrink:0;
+  }
+
+  html[data-theme="dark"] .results-topbar{background:rgba(26,26,46,0.7);}
+
+  .results-search{flex:1;max-width:400px;}
+
+  .results-body{
+    flex:1;
+    overflow-y:auto;
+    padding:24px;
+    max-width:900px;
+    margin:0 auto;
+    width:100%;
+  }
+
+  .results-header{margin-bottom:24px;font-size:14px;color:var(--text-secondary);}
+  .results-header strong{color:var(--text);font-weight:600;}
+
+  .ai-result{
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-xl);
+    padding:24px;
+    margin-bottom:24px;
+    transition:var(--transition);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .ai-result::before{
+    content:"";
+    position:absolute;
+    top:0;right:0;
+    width:1px;
+    height:100%;
+    background:linear-gradient(180deg,var(--accent1),var(--accent2));
+  }
+
+  .ai-result:hover{border-color:var(--accent1);box-shadow:var(--shadow-lg);}
+
+  .ai-badge{
+    display:inline-block;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    padding:5px 10px;
+    border-radius:20px;
+    margin-bottom:12px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+
+  .ai-result h2{font-size:24px;font-weight:700;margin-bottom:12px;color:var(--text);}
+  .ai-result p{font-size:15px;line-height:1.7;color:var(--text-secondary);margin-bottom:12px;}
+
+  .ai-source{font-size:13px;color:var(--text-tertiary);}
+  .ai-source a{color:var(--link);font-weight:500;text-decoration:none;}
+  .ai-source a:hover{text-decoration:underline;color:var(--link-hover);}
+
+  .result-item{
+    background:var(--surface);
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-lg);
+    padding:18px;
+    margin-bottom:16px;
+    transition:var(--transition);
+    cursor:pointer;
+  }
+
+  .result-item:hover{
+    border-color:var(--accent1);
+    background:var(--surface-alt);
+    transform:translateX(4px);
+    box-shadow:var(--shadow-md);
+  }
+
+  .result-url{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    color:var(--text-tertiary);
+    margin-bottom:6px;
+  }
+
+  .result-favicon{
+    width:20px;
+    height:20px;
+    border-radius:50%;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:700;
+    color:#fff;
+    flex-shrink:0;
+  }
+
+  .result-title{
+    font-size:18px;
+    color:var(--link);
+    font-weight:600;
+    margin-bottom:6px;
+    display:block;
+    text-decoration:none;
+    transition:var(--transition);
+  }
+
+  .result-item:hover .result-title{color:var(--link-hover);}
+
+  .result-desc{font-size:14px;color:var(--text-secondary);line-height:1.6;}
+
+  .empty-state{text-align:center;padding:80px 20px;color:var(--text-secondary);}
+  .empty-state svg{width:80px;height:80px;opacity:0.3;margin-bottom:20px;}
+  .empty-state h3{font-size:20px;color:var(--text);margin-bottom:10px;font-weight:600;}
+  .empty-state p{font-size:14px;max-width:400px;margin:0 auto;line-height:1.6;}
+
+  .skeleton{display:flex;flex-direction:column;gap:16px;}
+  .skeleton-line{
+    height:12px;
+    border-radius:6px;
+    background:linear-gradient(90deg,var(--surface-2) 0%,var(--surface-alt) 50%,var(--surface-2) 100%);
+    background-size:200% 100%;
+    animation:shimmer 2s infinite;
+  }
+
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+  .sidebar{
+    position:fixed;top:0;left:-320px;
+    width:300px;
+    height:100dvh;
+    background:var(--bg-secondary);
+    border-right:1px solid var(--border);
+    z-index:100;
+    transition:left 0.3s ease;
+    overflow-y:auto;
+    padding-top:env(safe-area-inset-top);
+    box-shadow:var(--shadow-lg);
+  }
+
+  .sidebar.show{left:0;}
+
+  .sidebar-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px;
+    border-bottom:1px solid var(--border);
+    font-weight:600;
+    color:var(--text);
+  }
+
+  .sidebar-close{
+    background:none;border:none;
+    cursor:pointer;
+    color:var(--text-secondary);
+    width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius);
+    transition:var(--transition);
+  }
+
+  .sidebar-close:hover{background:var(--surface-hover);color:var(--text);}
+
+  .sidebar-content{padding:12px;}
+
+  .sidebar-item{
+    display:flex;align-items:center;gap:12px;
+    padding:12px;
+    border-radius:var(--radius);
+    cursor:pointer;
+    transition:var(--transition);
+    color:var(--text);
+    background:none;
+    border:none;
+    width:100%;
+    text-align:left;
+    font-size:14px;
+  }
+
+  .sidebar-item:hover{background:var(--surface-hover);color:var(--accent1);}
+
+  .sidebar-item svg{width:18px;height:18px;color:var(--text-secondary);flex-shrink:0;}
+  .sidebar-item:hover svg{color:var(--accent1);}
+
+  .sidebar-time{font-size:12px;color:var(--text-tertiary);}
+
+  .overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);display:none;}
+  .overlay.show{display:block;}
+
+  .modal-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);padding:20px;}
+  .modal-overlay.show{display:flex;}
+
+  .modal{
+    background:var(--surface);
+    border-radius:var(--radius-xl);
+    padding:32px;
+    box-shadow:var(--shadow-xl);
+    max-width:420px;
+    width:100%;
+    animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    border:1px solid var(--border);
+  }
+
+  .modal h2{font-size:24px;font-weight:700;margin-bottom:8px;color:var(--text);}
+  .modal p{font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.6;}
+
+  .form-group{margin-bottom:16px;}
+  .form-label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;}
+
+  .form-input{
+    width:100%;
+    padding:10px 14px;
+    background:var(--surface-2);
+    border:1.5px solid var(--border);
+    border-radius:var(--radius);
+    font-size:14px;
+    color:var(--text);
+    font-family:inherit;
+    transition:var(--transition);
+  }
+
+  .form-input:hover{border-color:var(--border);}
+  .form-input:focus{outline:none;border-color:var(--accent1);background:var(--surface);box-shadow:0 0 0 3px rgba(91,61,240,0.1);}
+
+  .form-error{font-size:12px;color:#ef4444;margin-top:6px;min-height:18px;}
+
+  .modal-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:24px;}
+
+  .btn{padding:10px 18px;border-radius:var(--radius);border:none;font-size:14px;font-weight:600;cursor:pointer;transition:var(--transition);font-family:inherit;}
+
+  .btn-secondary{
+    background:var(--surface-alt);
+    color:var(--text);
+    border:1.5px solid var(--border);
+  }
+
+  .btn-secondary:hover{background:var(--surface-hover);border-color:var(--accent1);color:var(--accent1);}
+
+  .btn-primary{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;
+    box-shadow:var(--shadow-md);
+  }
+
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .account-menu{
+    position:absolute;top:100%;right:0;
+    width:320px;
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-xl);
+    border:1px solid var(--border);
+    margin-top:8px;
+    z-index:150;
+    display:none;
+    overflow:hidden;
+  }
+
+  .account-menu.show{display:block;}
+
+  .account-menu-header{
+    padding:20px;
+    text-align:center;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(135deg,var(--surface-alt),var(--surface));
+  }
+
+  .account-avatar{
+    width:56px;height:56px;
+    border-radius:50%;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:700;
+    margin:0 auto 12px;
+  }
+
+  .account-email{font-size:14px;font-weight:600;color:var(--text);word-break:break-all;}
+
+  .menu-section{padding:8px;border-bottom:1px solid var(--border);}
+  .menu-section:last-child{border-bottom:none;}
+
+  .menu-item{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 12px;
+    border-radius:var(--radius);
+    background:none;
+    border:none;
+    cursor:pointer;
+    color:var(--text);
+    font-size:13px;
+    width:100%;
+    text-align:left;
+    transition:var(--transition);
+  }
+
+  .menu-item:hover{background:var(--surface-hover);color:var(--accent1);}
+  .menu-item svg{width:18px;height:18px;color:var(--text-secondary);flex-shrink:0;}
+  .menu-item:hover svg{color:var(--accent1);}
+
+  .theme-toggle{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;}
+
+  .toggle-switch{position:relative;width:48px;height:24px;}
+  .toggle-switch input{opacity:0;width:0;height:0;}
+  .toggle-track{position:absolute;inset:0;background:var(--border);border-radius:12px;cursor:pointer;transition:var(--transition);}
+  .toggle-thumb{position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:2px;transition:var(--transition);}
+  .toggle-switch input:checked + .toggle-track{background:linear-gradient(135deg,var(--accent1),var(--accent2));}
+  .toggle-switch input:checked + .toggle-track ~ .toggle-thumb{transform:translateX(24px);}
+
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes slideDown{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes popIn{from{opacity:0;transform:scale(0.9);}to{opacity:1;transform:scale(1);}}
+
+  @media(max-width:768px){
+    .navbar-brand-text{display:none;}
+    .search-bar-main{display:none;}
+    .home-logo h1{font-size:42px;}
+    .search-shell{width:100%;}
+    .results-body{padding:16px;}
+    .modal{padding:24px;}
+  }
+
+  @media(max-width:480px){
+    .home-logo h1{font-size:36px;}
+    .home-actions{gap:10px;}
+    .action-btn{font-size:13px;padding:8px 16px;}
+    .results-topbar{padding:10px 12px;}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-secondary);}
+</style>
+</head>
+<body>
+
+<div class="gradient-bg"></div>
+
+<div class="container">
+  <nav class="navbar">
+    <div class="navbar-left">
+      <button class="nav-btn" id="menuBtn" aria-label="Menu" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <a href="#" class="navbar-brand" id="navbarBrand">
+        <img src="icon-120.png" alt="Sornet">
+        <span class="navbar-brand-text">Sornet</span>
+      </a>
+    </div>
+
+    <form class="search-bar-main" id="navSearchForm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="navSearchInput" autocomplete="off" placeholder="Search...">
+    </form>
+
+    <div class="navbar-right">
+      <button class="nav-btn" id="historyBtn" title="History">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </button>
+      <button class="nav-btn" id="downloadsBtn" title="Downloads">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div style="position:relative;">
+        <button class="nav-btn primary" id="accountBtn">
+          <span id="accountBtnText">Sign up</span>
+        </button>
+        <div class="account-menu" id="accountMenu">
+          <div class="account-menu-header">
+            <div class="account-avatar" id="accountAvatar">?</div>
+            <div class="account-email" id="accountEmail">Not signed in</div>
+          </div>
+          <div class="menu-section" id="accountsSection"></div>
+          <div class="menu-section">
+            <div class="theme-toggle">
+              <span style="display:flex;align-items:center;gap:8px;font-weight:500;">
+                <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                Dark
+              </span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="themeSwitch">
+                <span class="toggle-track"></span>
+                <span class="toggle-thumb"></span>
+              </label>
+            </div>
+          </div>
+          <div class="menu-section" id="signoutSection" style="display:none;">
+            <button class="menu-item" id="signOutBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="tabs-bar" id="tabsBar">
+    <button class="new-tab-btn" id="newTabBtn" title="New Tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
+  <div class="content-area">
+    <main id="homeView">
+      <div class="home-logo">
+        <img src="icon-120.png" alt="Sornet">
+        <h1>Sornet</h1>
+      </div>
+
+      <div class="search-shell">
+        <form id="homeForm">
+          <div class="search-hero" id="searchHero">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="homeInput" autocomplete="off" placeholder="Search Sornet or type a question...">
+          </div>
+        </form>
+
+        <div class="home-actions">
+          <button class="action-btn primary" id="searchBtn">🔍 Search with AI</button>
+        </div>
+
+        <div class="engine-selector" id="engineSelector"></div>
+
+        <p class="home-subtitle">Fast, clean, AI-powered search. Instant answers powered by DuckDuckGo.</p>
+      </div>
+    </main>
+
+    <div id="resultsView">
+      <div class="results-topbar">
+        <a href="#" class="navbar-brand" id="resultsBackBtn" style="cursor:pointer;">
+          <img src="icon-120.png" alt="Sornet" style="width:28px;height:28px;">
+          <span class="navbar-brand-text">Sornet</span>
+        </a>
+        <form id="resultsForm" class="results-search">
+          <div class="search-bar-main">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="resultsInput" autocomplete="off">
+          </div>
+        </form>
+      </div>
+
+      <div class="engine-selector" id="engineSelectorResults" style="padding:12px 24px;border-bottom:1px solid var(--border);"></div>
+
+      <div class="results-body">
+        <div class="results-header" id="resultsHeader"></div>
+        <div id="resultsContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="sidebar" id="historySidebar">
+  <div class="sidebar-header">
+    <span>📊 Search History</span>
+    <button class="sidebar-close" id="closeHistorySidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="sidebar-content" id="historyContent"></div>
+</div>
+
+<div class="sidebar" id="downloadsSidebar">
+  <div class="sidebar-header">
+    <span>⬇️ Downloads</span>
+    <button class="sidebar-close" id="closeDownloadsSidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="sidebar-content" id="downloadsContent"></div>
+</div>
+
+<div class="modal-overlay" id="signinModal">
+  <div class="modal">
+    <h2>Sign in with Gmail</h2>
+    <p>Create a Sornet account to sync your preferences.</p>
+    <div class="form-group">
+      <label class="form-label" for="gmailInput">Gmail Address</label>
+      <input type="email" id="gmailInput" class="form-input" placeholder="you@gmail.com" autocomplete="email">
+      <div class="form-error" id="gmailError"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancelSignin">Cancel</button>
+      <button class="btn btn-primary" id="confirmSignin">Continue</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></ script>
+</body>
+</html>
